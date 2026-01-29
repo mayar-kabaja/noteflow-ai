@@ -1,10 +1,14 @@
 """
-AI summarization service for meeting notes
+AI summarization service for meeting notes using Groq
 """
-import openai
+from openai import OpenAI
 from config import Config
 
-openai.api_key = Config.OPENAI_API_KEY
+# Groq uses OpenAI-compatible API
+client = OpenAI(
+    api_key=Config.GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1"
+)
 
 
 def generate_summary(transcript):
@@ -34,8 +38,8 @@ def generate_summary(transcript):
     """
 
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4",
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that creates structured meeting notes."},
                 {"role": "user", "content": prompt}
@@ -48,6 +52,44 @@ def generate_summary(transcript):
         return summary
     except Exception as e:
         print(f"Summarization error: {e}")
+        raise
+
+
+def translate_text(text, target_language):
+    """
+    Translate text to target language using Groq
+
+    Args:
+        text (str): Text to translate
+        target_language (str): Target language (e.g., "Spanish", "French", "Arabic")
+
+    Returns:
+        str: Translated text
+    """
+    prompt = f"""
+    Translate the following text to {target_language}.
+    Maintain the same formatting, structure, and sections.
+    Keep headers and bullet points intact.
+
+    Text to translate:
+    {text}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": f"You are a professional translator. Translate text to {target_language} while preserving formatting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=2000
+        )
+
+        translation = response.choices[0].message.content
+        return translation
+    except Exception as e:
+        print(f"Translation error: {e}")
         raise
 
 
@@ -70,8 +112,8 @@ def extract_action_items(transcript):
     """
 
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4",
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You extract action items from meeting transcripts."},
                 {"role": "user", "content": prompt}

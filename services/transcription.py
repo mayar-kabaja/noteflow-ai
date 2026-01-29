@@ -1,15 +1,20 @@
 """
-Audio transcription service using OpenAI Whisper API
+Audio transcription service using AssemblyAI API
 """
-import openai
+import assemblyai as aai
 from config import Config
+import httpx
 
-openai.api_key = Config.OPENAI_API_KEY
+aai.settings.api_key = Config.ASSEMBLYAI_API_KEY
+
+# Create custom HTTP client with longer timeout
+http_client = httpx.Client(timeout=300.0)  # 5 minutes timeout
 
 
 def transcribe_audio(audio_file_path):
     """
-    Transcribe audio file using OpenAI Whisper API
+    Transcribe audio file using AssemblyAI API
+    Supports automatic language detection for 100+ languages
 
     Args:
         audio_file_path (str): Path to the audio file
@@ -18,13 +23,18 @@ def transcribe_audio(audio_file_path):
         str: Transcribed text
     """
     try:
-        with open(audio_file_path, 'rb') as audio_file:
-            transcript = openai.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="text"
-            )
-        return transcript
+        # Enable automatic language detection
+        config = aai.TranscriptionConfig(
+            language_detection=True
+        )
+
+        transcriber = aai.Transcriber()
+        transcript = transcriber.transcribe(audio_file_path, config=config)
+
+        if transcript.status == aai.TranscriptStatus.error:
+            raise Exception(f"Transcription failed: {transcript.error}")
+
+        return transcript.text
     except Exception as e:
         print(f"Transcription error: {e}")
         raise
@@ -32,22 +42,35 @@ def transcribe_audio(audio_file_path):
 
 def transcribe_audio_with_timestamps(audio_file_path):
     """
-    Transcribe audio file with timestamps
+    Transcribe audio file with timestamps and speaker detection
 
     Args:
         audio_file_path (str): Path to the audio file
 
     Returns:
-        dict: Transcribed text with timestamps
+        dict: Transcribed text with timestamps and speaker labels
     """
     try:
-        with open(audio_file_path, 'rb') as audio_file:
-            transcript = openai.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="verbose_json"
-            )
-        return transcript
+        config = aai.TranscriptionConfig(speaker_labels=True)
+        transcriber = aai.Transcriber()
+        transcript = transcriber.transcribe(audio_file_path, config=config)
+
+        if transcript.status == aai.TranscriptStatus.error:
+            raise Exception(f"Transcription failed: {transcript.error}")
+
+        # Return structured data with timestamps and speakers
+        return {
+            'text': transcript.text,
+            'utterances': [
+                {
+                    'text': utterance.text,
+                    'start': utterance.start,
+                    'end': utterance.end,
+                    'speaker': utterance.speaker
+                }
+                for utterance in transcript.utterances
+            ] if transcript.utterances else []
+        }
     except Exception as e:
         print(f"Transcription error: {e}")
         raise

@@ -20,6 +20,8 @@ class Config:
 
     # API Keys
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    ASSEMBLYAI_API_KEY = os.environ.get('ASSEMBLYAI_API_KEY')
+    GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
     # Database settings
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///noteflow.db'

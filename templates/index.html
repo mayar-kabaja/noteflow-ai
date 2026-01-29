@@ -6,48 +6,54 @@
     <p>Transform your audio recordings into structured meeting notes with AI</p>
 
     <form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
-        <!-- Voice Recording Section -->
-        <div class="recording-section recording-section-compact">
-            <h3>Record Your Voice</h3>
-            <p class="recording-hint">Click to start recording</p>
+        <!-- Two Column Layout -->
+        <div class="input-grid">
+            <!-- Voice Recording Section -->
+            <div class="recording-section recording-section-compact">
+                <h3>&#x1F3A4; Record Your Voice</h3>
+                <p class="recording-hint">Click to start recording</p>
 
-            <div class="recording-controls">
-                <button type="button" class="btn-record btn-record-compact" id="recordBtn">
-                    <span class="record-icon">&#x1F3A4;</span>
-                    <span class="record-text">Record</span>
-                </button>
+                <div class="recording-controls">
+                    <button type="button" class="btn-record btn-record-compact" id="recordBtn">
+                        <span class="record-icon">&#x1F3A4;</span>
+                        <span class="record-text">Record</span>
+                    </button>
 
-                <button type="button" class="btn-stop btn-stop-compact" id="stopBtn" style="display: none;">
-                    <span>&#x23F9;</span>
-                    <span>Stop</span>
-                </button>
+                    <button type="button" class="btn-stop btn-stop-compact" id="stopBtn" style="display: none;">
+                        <span>&#x23F9;</span>
+                        <span>Stop</span>
+                    </button>
+                </div>
+
+                <div class="recording-timer" id="recordingTimer" style="display: none;">
+                    <span class="recording-pulse"></span>
+                    <span id="timerDisplay">00:00</span>
+                </div>
+
+                <div class="audio-preview" id="audioPreview" style="display: none;">
+                    <p>Preview:</p>
+                    <audio id="audioPlayback" controls></audio>
+                    <button type="button" class="btn btn-secondary btn-small" id="discardBtn">
+                        <span>&#x1F5D1;</span>
+                        <span>Discard</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="recording-timer" id="recordingTimer" style="display: none;">
-                <span class="recording-pulse"></span>
-                <span id="timerDisplay">00:00</span>
+            <!-- Divider -->
+            <div class="divider-vertical">
+                <span>OR</span>
             </div>
 
-            <div class="audio-preview" id="audioPreview" style="display: none;">
-                <p>Preview:</p>
-                <audio id="audioPlayback" controls></audio>
-                <button type="button" class="btn btn-secondary btn-small" id="discardBtn">
-                    <span>&#x1F5D1;</span>
-                    <span>Discard</span>
-                </button>
+            <!-- Upload Section -->
+            <div class="upload-column">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-icon">&#x1F4C4;</div>
+                    <div class="drop-zone-text">Drag & drop audio file</div>
+                    <div class="drop-zone-hint">or click to browse</div>
+                    <input type="file" id="audioFile" name="audio" accept="audio/*,.opus" class="file-input" required>
+                </div>
             </div>
-        </div>
-
-        <!-- Divider -->
-        <div class="divider">
-            <span>OR</span>
-        </div>
-
-        <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-icon">&#x1F4C4;</div>
-            <div class="drop-zone-text">Drag & drop audio file</div>
-            <div class="drop-zone-hint">or click to browse</div>
-            <input type="file" id="audioFile" name="audio" accept="audio/*,.opus" class="file-input" required>
         </div>
 
         <div id="fileSelected" class="file-selected">
@@ -59,14 +65,6 @@
             <span>Process Audio</span>
         </button>
     </form>
-
-    <div id="progressSection" class="progress-section">
-        <div class="spinner"></div>
-        <p class="progress-text">Processing your audio file...</p>
-        <div class="progress-bar-container">
-            <div class="progress-bar"></div>
-        </div>
-    </div>
 </div>
 
 <div class="container" style="margin-top: 40px; text-align: center;">
@@ -74,5 +72,90 @@
         <span>&#x1F4C2;</span>
         <span>View History</span>
     </a>
+</div>
+
+<!-- Result Modal -->
+<div id="resultModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>
+                <span>&#x2705;</span>
+                <span>Your Meeting Notes</span>
+            </h2>
+            <button class="modal-close" id="closeModal">
+                <span>&times;</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="transcript">
+                <h3>&#x1F4DD; Transcript</h3>
+                <p id="modalTranscript"></p>
+            </div>
+
+            <div class="notes">
+                <h3>&#x2728; AI-Generated Summary</h3>
+                <div id="modalSummary"></div>
+            </div>
+
+            <!-- Translation Options -->
+            <div class="translation-section">
+                <h3>&#x1F30D; Translate Notes</h3>
+                <div class="translation-controls">
+                    <select id="modalTargetLanguage" class="language-select">
+                        <option value="">Select Language...</option>
+                        <option value="Spanish">🇪🇸 Spanish</option>
+                        <option value="French">🇫🇷 French</option>
+                        <option value="German">🇩🇪 German</option>
+                        <option value="Arabic">🇸🇦 Arabic</option>
+                        <option value="Chinese">🇨🇳 Chinese</option>
+                        <option value="Japanese">🇯🇵 Japanese</option>
+                        <option value="Korean">🇰🇷 Korean</option>
+                        <option value="Portuguese">🇵🇹 Portuguese</option>
+                        <option value="Russian">🇷🇺 Russian</option>
+                        <option value="Italian">🇮🇹 Italian</option>
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Turkish">🇹🇷 Turkish</option>
+                    </select>
+                    <button class="btn btn-translate" onclick="translateModalNotes()" id="modalTranslateBtn">
+                        <span>🌐</span>
+                        <span>Translate</span>
+                    </button>
+                </div>
+                <div id="modalTranslationResult" class="translation-result" style="display:none;">
+                    <h4>Translated Summary:</h4>
+                    <div id="modalTranslatedContent"></div>
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="export-options">
+                <button class="btn btn-export export-btn" onclick="exportModalAsText()">
+                    <span>&#x1F4E5;</span>
+                    <span>Export as TXT</span>
+                </button>
+                <button class="btn btn-export export-btn" onclick="exportModalAsMarkdown()">
+                    <span>&#x1F4C4;</span>
+                    <span>Export as Markdown</span>
+                </button>
+                <button class="btn btn-secondary export-btn" onclick="copyModalToClipboard()">
+                    <span>&#x1F4CB;</span>
+                    <span>Copy to Clipboard</span>
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn" onclick="closeResultModal()">
+                    <span>&#x2B06;</span>
+                    <span>Upload Another File</span>
+                </button>
+                <a href="/history" class="btn btn-secondary">
+                    <span>&#x1F4C2;</span>
+                    <span>View History</span>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

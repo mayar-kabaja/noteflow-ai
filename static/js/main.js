@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Elements
     const fileInput = document.getElementById('audioFile');
     const uploadForm = document.getElementById('uploadForm');
-    const progressSection = document.getElementById('progressSection');
     const dropZone = document.getElementById('dropZone');
     const fileSelected = document.getElementById('fileSelected');
     const fileName = document.getElementById('fileName');
@@ -195,15 +194,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData(uploadForm);
 
-            // Show progress section
-            if (progressSection) {
-                progressSection.classList.add('show');
-            }
-
-            // Disable submit button
+            // Disable submit button and show spinner
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span>&#x23F3;</span><span>Processing...</span>';
+                submitBtn.innerHTML = '<span class="btn-spinner"></span><span>Processing...</span>';
             }
 
             // Upload file via AJAX
@@ -219,8 +213,20 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 if (data.success) {
-                    // Success - redirect to result page
-                    window.location.href = `/result/${data.meeting_id}`;
+                    // Success - show result in modal
+                    showResultModal(data.meeting_id);
+
+                    // Re-enable submit button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<span>&#x1F680;</span><span>Process Audio</span>';
+                    }
+
+                    // Reset form
+                    uploadForm.reset();
+                    if (fileSelected) {
+                        fileSelected.style.display = 'none';
+                    }
                 } else {
                     // Error from server
                     throw new Error(data.message || 'Upload failed');
@@ -229,11 +235,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 showToast('Upload Failed', error.message || 'An error occurred during upload', 'error', 7000);
-
-                // Hide progress section
-                if (progressSection) {
-                    progressSection.classList.remove('show');
-                }
 
                 // Re-enable submit button
                 if (submitBtn) {
@@ -423,15 +424,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 formData.append('audio', audioFile);
 
-                // Show progress section
-                if (progressSection) {
-                    progressSection.classList.add('show');
-                }
-
-                // Disable submit button
+                // Disable submit button and show spinner
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span>&#x23F3;</span><span>Processing...</span>';
+                    submitBtn.innerHTML = '<span class="btn-spinner"></span><span>Processing...</span>';
                 }
 
                 // Upload file via AJAX
@@ -447,8 +443,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        // Success - redirect to result page
-                        window.location.href = `/result/${data.meeting_id}`;
+                        // Success - show result in modal
+                        showResultModal(data.meeting_id);
+
+                        // Re-enable submit button
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<span>&#x1F680;</span><span>Process Audio</span>';
+                        }
+
+                        // Clear recording
+                        recordedBlob = null;
+                        audioChunks = [];
+                        audioPlayback.src = '';
+                        audioPreview.style.display = 'none';
                     } else {
                         // Error from server
                         throw new Error(data.message || 'Upload failed');
@@ -457,11 +465,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 .catch(error => {
                     console.error('Error:', error);
                     showToast('Upload Failed', error.message || 'An error occurred during upload', 'error', 7000);
-
-                    // Hide progress section
-                    if (progressSection) {
-                        progressSection.classList.remove('show');
-                    }
 
                     // Re-enable submit button
                     if (submitBtn) {
@@ -484,4 +487,161 @@ document.addEventListener('DOMContentLoaded', function() {
             section.style.transform = 'translateY(0)';
         }, index * 100);
     });
+
+    // Modal close functionality
+    const closeModalBtn = document.getElementById('closeModal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeResultModal);
+    }
+
+    // Close modal when clicking outside
+    const modal = document.getElementById('resultModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeResultModal();
+            }
+        });
+    }
 });
+
+// Modal Functions
+let currentMeetingData = null;
+
+function showResultModal(meetingId) {
+    // Fetch meeting data
+    fetch(`/api/meeting/${meetingId}`)
+        .then(response => response.json())
+        .then(data => {
+            currentMeetingData = data;
+
+            // Populate modal with data
+            document.getElementById('modalTranscript').textContent = data.transcript || 'Transcript not available';
+            document.getElementById('modalSummary').textContent = data.summary || 'Summary not available';
+
+            // Reset translation
+            document.getElementById('modalTranslationResult').style.display = 'none';
+            document.getElementById('modalTargetLanguage').value = '';
+
+            // Show modal
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            showToast('Success', 'Your meeting notes are ready!', 'success', 3000);
+        })
+        .catch(error => {
+            console.error('Error fetching meeting:', error);
+            showToast('Error', 'Failed to load meeting data', 'error');
+        });
+}
+
+function closeResultModal() {
+    const modal = document.getElementById('resultModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = 'auto';
+    currentMeetingData = null;
+}
+
+// Translation in Modal
+async function translateModalNotes() {
+    const select = document.getElementById('modalTargetLanguage');
+    const targetLanguage = select.value;
+
+    if (!targetLanguage) {
+        showToast('Language Required', 'Please select a target language', 'warning');
+        return;
+    }
+
+    const summary = document.getElementById('modalSummary').textContent;
+    const btn = document.getElementById('modalTranslateBtn');
+    const originalHTML = btn.innerHTML;
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="btn-spinner"></span><span>Translating...</span>';
+
+        const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: summary,
+                language: targetLanguage
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const resultDiv = document.getElementById('modalTranslationResult');
+            const contentDiv = document.getElementById('modalTranslatedContent');
+            contentDiv.textContent = data.translated_text;
+            resultDiv.style.display = 'block';
+
+            showToast('Translation Complete', `Translated to ${targetLanguage}`, 'success');
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            showToast('Translation Failed', data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Translation error:', error);
+        showToast('Translation Failed', 'An error occurred during translation', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+// Export as TXT from Modal
+function exportModalAsText() {
+    if (!currentMeetingData) return;
+
+    const content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `meeting-notes-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Export Complete', 'File downloaded successfully', 'success', 3000);
+}
+
+// Export as Markdown from Modal
+function exportModalAsMarkdown() {
+    if (!currentMeetingData) return;
+
+    const content = `# Meeting Notes\n\n## Transcript\n\n${currentMeetingData.transcript}\n\n## AI-Generated Summary\n\n${currentMeetingData.summary}`;
+
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `meeting-notes-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Export Complete', 'File downloaded successfully', 'success', 3000);
+}
+
+// Copy to Clipboard from Modal
+function copyModalToClipboard() {
+    if (!currentMeetingData) return;
+
+    const content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+
+    navigator.clipboard.writeText(content).then(() => {
+        showToast('Copied', 'Meeting notes copied to clipboard', 'success', 2000);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        showToast('Copy Failed', 'Failed to copy to clipboard', 'error');
+    });
+}
