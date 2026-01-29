@@ -192,8 +192,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (recordedBlob) {
                 // Use recorded audio
                 formData = new FormData();
-                const audioFile = new File([recordedBlob], `recording-${Date.now()}.webm`, {
-                    type: 'audio/webm'
+
+                // Determine file extension from MIME type
+                const mimeType = recordedBlob.type;
+                let extension = 'webm';
+                if (mimeType.includes('mp4')) {
+                    extension = 'm4a';
+                } else if (mimeType.includes('ogg')) {
+                    extension = 'ogg';
+                } else if (mimeType.includes('webm')) {
+                    extension = 'webm';
+                }
+
+                const audioFile = new File([recordedBlob], `recording-${Date.now()}.${extension}`, {
+                    type: mimeType
                 });
                 formData.append('audio', audioFile);
             } else if (fileInput && fileInput.files && fileInput.files.length > 0) {
@@ -303,8 +315,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Microphone access granted!');
                 showToast('Recording Started', 'Your audio is being recorded', 'success', 3000);
 
-                // Create MediaRecorder
-                mediaRecorder = new MediaRecorder(stream);
+                // Detect supported audio format for this browser
+                let mimeType = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    mimeType = 'audio/webm';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus';
+                } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                    mimeType = 'audio/ogg;codecs=opus';
+                }
+
+                console.log('Using MIME type:', mimeType);
+
+                // Create MediaRecorder with detected format
+                mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
                 audioChunks = [];
 
                 // Handle data available
@@ -314,8 +340,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Handle recording stop
                 mediaRecorder.onstop = () => {
-                    // Create blob from chunks
-                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    // Get the actual MIME type from the recorder
+                    const actualMimeType = mediaRecorder.mimeType || mimeType;
+                    console.log('Recording stopped. MIME type:', actualMimeType);
+
+                    // Create blob from chunks with the correct type
+                    recordedBlob = new Blob(audioChunks, { type: actualMimeType });
 
                     // Create URL for playback
                     const audioUrl = URL.createObjectURL(recordedBlob);
