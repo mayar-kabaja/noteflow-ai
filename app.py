@@ -159,4 +159,5 @@ with app.app_context():
 
 
 if __name__ == '__main__':
+    # For local development only
     app.run(debug=True, port=5001)
