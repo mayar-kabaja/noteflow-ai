@@ -1,6 +1,6 @@
 # Creating Social Media Preview Image
 
-When you share your VoiceNotes AI link on social media, WhatsApp, Slack, or other platforms, this preview image will appear.
+When you share your NoteFlow AI link on social media, WhatsApp, Slack, or other platforms, this preview image will appear.
 
 ## Current Setup
 
@@ -16,9 +16,9 @@ For better compatibility across all platforms, create a PNG version:
 2. Create a custom size: **1200 x 630 pixels**
 3. Use this template idea:
    - Background: Purple gradient (#667eea to #764ba2)
-   - Large microphone emoji 🎤 in center
-   - Title: "VoiceNotes AI" (large, bold, white)
-   - Subtitle: "Transform Voice Notes into Structured Meeting Minutes"
+   - Large notes emoji 📝 in center
+   - Title: "NoteFlow AI" (large, bold, white)
+   - Subtitle: "Transform Voice, Books & Videos into Notes"
    - Icons: ✨ AI Transcription • 📝 Smart Summaries • 🌐 Multi-Language
 4. Download as PNG
 5. Save as `static/images/social-preview.png`
@@ -47,7 +47,7 @@ Use AI tools like:
 - [Midjourney](https://www.midjourney.com/)
 - [Stable Diffusion](https://stability.ai/)
 
-Prompt: "Modern, minimalist app preview image for voice transcription AI app, purple gradient background, microphone icon, clean typography, 1200x630 pixels"
+Prompt: "Modern, minimalist app preview image for note-taking AI app that processes voice, books and videos, purple gradient background, notes icon, clean typography, 1200x630 pixels"
 
 ## Image Requirements
 
@@ -94,8 +94,8 @@ And same for the Twitter image tag.
 ## Current Preview
 
 Your current SVG preview shows:
-- 🎤 Microphone icon
-- "VoiceNotes AI" title
+- 📝 Notes icon
+- "NoteFlow AI" title
 - Subtitle with app description
 - Feature highlights
 - Purple gradient background

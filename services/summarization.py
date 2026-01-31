@@ -168,3 +168,57 @@ def extract_action_items(transcript):
     except Exception as e:
         print(f"Action item extraction error: {e}")
         raise
+
+
+def summarize_book(book_text, max_length=10000):
+    """
+    Generate a comprehensive summary of a book
+
+    Args:
+        book_text (str): Full text of the book
+        max_length (int): Maximum characters to process (to avoid token limits)
+
+    Returns:
+        dict: Dictionary with 'summary' and 'key_points'
+    """
+    # Truncate if too long (Groq has token limits)
+    if len(book_text) > max_length:
+        book_text = book_text[:max_length] + "..."
+
+    prompt = f"""
+    You are an expert book analyst. Analyze the following book text and create a comprehensive summary.
+
+    Please provide:
+
+    1. SUMMARY
+    Write 3-5 paragraphs that capture the main themes, arguments, and key ideas of the book.
+
+    2. KEY POINTS
+    List 8-12 of the most important points, insights, or lessons from the book.
+    Format each as: "• Point description"
+
+    3. MAIN TAKEAWAYS
+    Provide 3-5 actionable takeaways or lessons readers should remember.
+
+    Keep the language clear and accessible.
+
+    Book text:
+    {book_text}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are an expert at analyzing and summarizing books."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+
+        result = response.choices[0].message.content
+        return result
+    except Exception as e:
+        print(f"Book summarization error: {e}")
+        raise

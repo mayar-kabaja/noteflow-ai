@@ -1,5 +1,5 @@
 """
-Configuration file for VoiceNotes AI application
+Configuration file for NoteFlow AI application
 """
 import os
 from dotenv import load_dotenv
@@ -15,8 +15,10 @@ class Config:
 
     # File upload settings
     UPLOAD_FOLDER = 'static/uploads'
-    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max file size
+    MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB max file size (for video files)
     ALLOWED_EXTENSIONS = {'mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'}
+    ALLOWED_BOOK_EXTENSIONS = {'pdf', 'epub', 'txt', 'docx', 'doc'}
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'm4v'}
 
     # API Keys
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')

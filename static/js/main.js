@@ -1,4 +1,4 @@
-// VoiceNotes AI Frontend JavaScript
+// NoteFlow AI Frontend JavaScript
 
 // Toast Notification System
 function showToast(title, message, type = 'info', duration = 5000) {
@@ -76,11 +76,19 @@ function playClickSound() {
 document.addEventListener('DOMContentLoaded', function() {
     // Elements
     const fileInput = document.getElementById('audioFile');
+    const bookFileInput = document.getElementById('bookFile');
+    const videoFileInput = document.getElementById('videoFile');
+    const videoUrlInput = document.getElementById('videoUrl');
     const uploadForm = document.getElementById('uploadForm');
     const dropZone = document.getElementById('dropZone');
+    const dropZoneBook = document.getElementById('dropZoneBook');
+    const videoZone = document.getElementById('videoZone');
     const fileSelected = document.getElementById('fileSelected');
     const fileName = document.getElementById('fileName');
     const submitBtn = document.getElementById('submitBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+
+    let selectedFileType = null; // 'audio', 'book', 'video', or 'video-url'
 
     // Add click sound to all buttons
     const allButtons = document.querySelectorAll('button, .btn, a.btn');
@@ -93,25 +101,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Drag and Drop Functionality
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Audio Drop Zone
     if (dropZone && fileInput) {
-        // Click to browse
         dropZone.addEventListener('click', function() {
             fileInput.click();
         });
 
-        // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
         });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        // Highlight drop zone when dragging over
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, function() {
                 dropZone.classList.add('dragover');
@@ -124,35 +128,195 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Handle dropped files
         dropZone.addEventListener('drop', function(e) {
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 fileInput.files = files;
-                handleFileSelect(files[0]);
+                bookFileInput.value = '';
+                handleFileSelect(files[0], 'audio');
             }
         });
 
-        // Handle file input change
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
-                handleFileSelect(this.files[0]);
+                bookFileInput.value = '';
+                handleFileSelect(this.files[0], 'audio');
             }
         });
     }
 
+    // Book Drop Zone
+    if (dropZoneBook && bookFileInput) {
+        dropZoneBook.addEventListener('click', function() {
+            bookFileInput.click();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZoneBook.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZoneBook.addEventListener(eventName, function() {
+                dropZoneBook.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZoneBook.addEventListener(eventName, function() {
+                dropZoneBook.classList.remove('dragover');
+            });
+        });
+
+        dropZoneBook.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                bookFileInput.files = files;
+                fileInput.value = '';
+                handleFileSelect(files[0], 'book');
+            }
+        });
+
+        bookFileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileInput.value = '';
+                handleFileSelect(this.files[0], 'book');
+            }
+        });
+    }
+
+    // Video Zone - supports both file upload and URL input
+    if (videoZone && videoFileInput && videoUrlInput) {
+        // Click handler - show video choice modal
+        videoZone.addEventListener('click', function(e) {
+            // If clicking directly on the zone (not on inputs)
+            if (e.target === videoZone || e.target.classList.contains('drop-zone-icon') ||
+                e.target.classList.contains('drop-zone-text') || e.target.classList.contains('drop-zone-hint')) {
+                // Show video choice modal
+                showVideoChoiceModal();
+            }
+        });
+
+        // Drag and drop for video files
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            videoZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            videoZone.addEventListener(eventName, function() {
+                videoZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            videoZone.addEventListener(eventName, function() {
+                videoZone.classList.remove('dragover');
+            });
+        });
+
+        videoZone.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                videoFileInput.files = files;
+                fileInput.value = '';
+                bookFileInput.value = '';
+                videoUrlInput.value = '';
+                handleFileSelect(files[0], 'video');
+            }
+        });
+
+        // Video file selection
+        videoFileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileInput.value = '';
+                bookFileInput.value = '';
+                videoUrlInput.value = '';
+                videoUrlInput.style.display = 'none';
+                handleFileSelect(this.files[0], 'video');
+            }
+        });
+
+        // Handle video URL input
+        videoUrlInput.addEventListener('input', function() {
+            const url = this.value.trim();
+            if (url) {
+                handleVideoUrlInput(url);
+            }
+        });
+    }
+
+    // Video URL input handler
+    function handleVideoUrlInput(url) {
+        // Clear other inputs
+        if (fileInput) fileInput.value = '';
+        if (bookFileInput) bookFileInput.value = '';
+        if (videoFileInput) videoFileInput.value = '';
+        recordedBlob = null;
+
+        // Basic YouTube URL validation
+        const isYouTubeUrl = url.includes('youtube.com') || url.includes('youtu.be');
+
+        if (isYouTubeUrl) {
+            selectedFileType = 'video-url';
+            submitBtnText.textContent = 'Summarize Video';
+
+            // Display selected video URL
+            if (fileName && fileSelected) {
+                fileName.textContent = `Selected: ${url}`;
+                fileSelected.style.display = 'block';
+            }
+
+            // Enable submit button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
+
+            showToast('Video URL Ready', 'YouTube video ready to process', 'success', 3000);
+        } else if (url.length > 10) {
+            showToast('Invalid URL', 'Please enter a valid YouTube URL', 'warning', 3000);
+            selectedFileType = null;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+        }
+    }
+
     // File selection handler
-    function handleFileSelect(file) {
+    function handleFileSelect(file, type) {
         if (!file) return;
 
-        // Validate file type
         const fileExtension = file.name.split('.').pop().toLowerCase();
-        const allowedExtensions = ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'];
+        let isValid = false;
 
-        if (!allowedExtensions.includes(fileExtension)) {
-            showToast('Invalid File Type', 'Please select a valid audio file: MP3, WAV, M4A, OGG, FLAC, WEBM, or OPUS', 'error');
-            fileInput.value = '';
-            return;
+        if (type === 'audio') {
+            const audioExtensions = ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'];
+            isValid = audioExtensions.includes(fileExtension);
+            if (!isValid) {
+                showToast('Invalid File Type', 'Please select a valid audio file: MP3, WAV, M4A, OGG, FLAC, WEBM, or OPUS', 'error');
+                fileInput.value = '';
+                return;
+            }
+            selectedFileType = 'audio';
+            submitBtnText.textContent = 'Process Audio';
+        } else if (type === 'book') {
+            const bookExtensions = ['pdf', 'epub', 'txt', 'docx', 'doc'];
+            isValid = bookExtensions.includes(fileExtension);
+            if (!isValid) {
+                showToast('Invalid File Type', 'Please select a valid book file: PDF, EPUB, TXT, or DOCX', 'error');
+                bookFileInput.value = '';
+                return;
+            }
+            selectedFileType = 'book';
+            submitBtnText.textContent = 'Summarize Book';
+        } else if (type === 'video') {
+            const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'm4v'];
+            isValid = videoExtensions.includes(fileExtension);
+            if (!isValid) {
+                showToast('Invalid File Type', 'Please select a valid video file: MP4, MOV, AVI, MKV, WEBM, FLV, or M4V', 'error');
+                videoFileInput.value = '';
+                return;
+            }
+            selectedFileType = 'video';
+            submitBtnText.textContent = 'Summarize Video';
         }
 
         // Display selected file
@@ -169,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show success toast
         showToast('File Selected', `${file.name} is ready to upload`, 'success', 3000);
 
-        console.log('Selected file:', file.name, formatFileSize(file.size));
+        console.log('Selected file:', file.name, formatFileSize(file.size), 'Type:', type);
     }
 
     // Format file size
@@ -187,13 +351,26 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             let formData;
+            let uploadEndpoint;
+            let isBookUpload = false;
+            let isVideoUpload = false;
 
-            // Check if there's a recorded audio first
-            if (recordedBlob) {
-                // Use recorded audio
+            // Check if there's a video URL first
+            if (selectedFileType === 'video-url' && videoUrlInput && videoUrlInput.value.trim()) {
+                // Video URL processing
+                uploadEndpoint = '/videos/process';
+                isVideoUpload = true;
+                isBookUpload = false;
+            } else if (selectedFileType === 'video' && videoFileInput && videoFileInput.files && videoFileInput.files.length > 0) {
+                // Video file upload
                 formData = new FormData();
-
-                // Determine file extension from MIME type
+                formData.append('video', videoFileInput.files[0]);
+                uploadEndpoint = '/videos/process';
+                isVideoUpload = true;
+                isBookUpload = false;
+            } else if (recordedBlob) {
+                // Recorded audio
+                formData = new FormData();
                 const mimeType = recordedBlob.type;
                 let extension = 'webm';
                 if (mimeType.includes('mp4')) {
@@ -208,12 +385,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     type: mimeType
                 });
                 formData.append('audio', audioFile);
-            } else if (fileInput && fileInput.files && fileInput.files.length > 0) {
-                // Use uploaded file
-                formData = new FormData(uploadForm);
+                uploadEndpoint = '/upload';
+                isBookUpload = false;
+            } else if (selectedFileType === 'book' && bookFileInput && bookFileInput.files && bookFileInput.files.length > 0) {
+                // Book upload
+                formData = new FormData();
+                formData.append('book', bookFileInput.files[0]);
+                uploadEndpoint = '/books/upload';
+                isBookUpload = true;
+            } else if (selectedFileType === 'audio' && fileInput && fileInput.files && fileInput.files.length > 0) {
+                // Audio file upload
+                formData = new FormData();
+                formData.append('audio', fileInput.files[0]);
+                uploadEndpoint = '/upload';
+                isBookUpload = false;
             } else {
-                // No file or recording
-                showToast('No File Selected', 'Please record audio or select a file first', 'warning');
+                showToast('No File Selected', 'Please record audio, upload a file (audio/video/book), or enter a YouTube URL', 'warning');
                 return;
             }
 
@@ -223,11 +410,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<span class="btn-spinner"></span><span>Processing...</span>';
             }
 
-            // Upload file via AJAX
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
+            // Prepare fetch options
+            let fetchOptions = {
+                method: 'POST'
+            };
+
+            if (isVideoUpload) {
+                // Video URL - send as JSON
+                fetchOptions.headers = {
+                    'Content-Type': 'application/json'
+                };
+                fetchOptions.body = JSON.stringify({
+                    video_url: videoUrlInput.value.trim()
+                });
+            } else {
+                // File upload - send as FormData
+                fetchOptions.body = formData;
+            }
+
+            // Upload file/URL via AJAX
+            fetch(uploadEndpoint, fetchOptions)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -237,18 +439,31 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     // Success - show result in modal
-                    showResultModal(data.meeting_id);
+                    if (isVideoUpload) {
+                        showVideoModal(data.video_id);
+                    } else if (isBookUpload) {
+                        showBookModal(data.book_id);
+                    } else {
+                        showResultModal(data.meeting_id);
+                    }
 
                     // Re-enable submit button
                     if (submitBtn) {
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<span>&#x1F680;</span><span>Process Audio</span>';
+                        submitBtn.innerHTML = '<span>&#x1F680;</span><span id="submitBtnText">Process</span>';
                     }
 
                     // Reset form
                     uploadForm.reset();
                     if (fileSelected) {
                         fileSelected.style.display = 'none';
+                    }
+                    selectedFileType = null;
+
+                    // Clear video URL input
+                    if (videoUrlInput) {
+                        videoUrlInput.value = '';
+                        videoUrlInput.style.display = 'none';
                     }
 
                     // Clear recording if exists
@@ -259,7 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (audioPreview) audioPreview.style.display = 'none';
                     }
                 } else {
-                    // Error from server
                     throw new Error(data.message || 'Upload failed');
                 }
             })
@@ -270,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Re-enable submit button
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<span>&#x1F680;</span><span>Process Audio</span>';
+                    submitBtn.innerHTML = '<span>&#x1F680;</span><span id="submitBtnText">Process</span>';
                 }
             });
         });
@@ -526,6 +740,89 @@ function closeResultModal() {
     modal.classList.remove('show');
     document.body.style.overflow = 'auto';
     currentMeetingData = null;
+    currentBookData = null;
+    currentVideoData = null;
+}
+
+// Book Modal
+let currentBookData = null;
+
+function showBookModal(bookId) {
+    // Fetch book data
+    fetch(`/api/book/${bookId}`)
+        .then(response => response.json())
+        .then(data => {
+            currentBookData = data;
+
+            // Update modal header
+            document.querySelector('.modal-header h2 span:last-child').textContent = 'Book Summary';
+
+            // Hide transcript section and show book title instead
+            const transcriptDiv = document.querySelector('.transcript');
+            transcriptDiv.innerHTML = `<h3>📖 ${data.title || 'Untitled Book'}</h3>`;
+
+            // Populate summary
+            document.getElementById('modalSummary').textContent = data.summary || 'Summary not available';
+
+            // Store original summary for translation reset
+            originalModalSummary = data.summary || 'Summary not available';
+
+            // Reset translation
+            document.getElementById('modalTargetLanguage').value = '';
+
+            // Show modal
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            showToast('Success', 'Your book summary is ready!', 'success', 3000);
+        })
+        .catch(error => {
+            console.error('Error fetching book:', error);
+            showToast('Error', 'Failed to load book data', 'error');
+        });
+}
+
+// Video Modal
+let currentVideoData = null;
+
+function showVideoModal(videoId) {
+    // Fetch video data
+    fetch(`/api/video/${videoId}`)
+        .then(response => response.json())
+        .then(data => {
+            currentVideoData = data;
+
+            // Update modal header
+            document.querySelector('.modal-header h2 span:last-child').textContent = 'Video Summary';
+
+            // Show video title and transcript
+            const transcriptDiv = document.querySelector('.transcript');
+            transcriptDiv.innerHTML = `
+                <h3>🎬 ${data.title || 'YouTube Video'}</h3>
+                <p id="modalTranscript">${data.transcript || 'Transcript not available'}</p>
+            `;
+
+            // Populate summary
+            document.getElementById('modalSummary').textContent = data.summary || 'Summary not available';
+
+            // Store original summary for translation reset
+            originalModalSummary = data.summary || 'Summary not available';
+
+            // Reset translation
+            document.getElementById('modalTargetLanguage').value = '';
+
+            // Show modal
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            showToast('Success', 'Your video summary is ready!', 'success', 3000);
+        })
+        .catch(error => {
+            console.error('Error fetching video:', error);
+            showToast('Error', 'Failed to load video data', 'error');
+        });
 }
 
 // Translation in Modal - Auto translate on language selection
@@ -582,15 +879,27 @@ async function translateModalSummary() {
 
 // Export as TXT from Modal
 function exportModalAsText() {
-    if (!currentMeetingData) return;
+    let content = '';
+    let filename = '';
 
-    const content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+    if (currentVideoData) {
+        content = `VIDEO: ${currentVideoData.title}\nURL: ${currentVideoData.video_url}\n\nTRANSCRIPT:\n\n${currentVideoData.transcript}\n\n\nSUMMARY:\n\n${currentVideoData.summary}`;
+        filename = `video-summary-${Date.now()}.txt`;
+    } else if (currentBookData) {
+        content = `BOOK: ${currentBookData.title}\n\nSUMMARY:\n\n${currentBookData.summary}`;
+        filename = `book-summary-${Date.now()}.txt`;
+    } else if (currentMeetingData) {
+        content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+        filename = `meeting-notes-${Date.now()}.txt`;
+    } else {
+        return;
+    }
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `meeting-notes-${Date.now()}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -601,15 +910,27 @@ function exportModalAsText() {
 
 // Export as Markdown from Modal
 function exportModalAsMarkdown() {
-    if (!currentMeetingData) return;
+    let content = '';
+    let filename = '';
 
-    const content = `# Meeting Notes\n\n## Transcript\n\n${currentMeetingData.transcript}\n\n## AI-Generated Summary\n\n${currentMeetingData.summary}`;
+    if (currentVideoData) {
+        content = `# Video Summary\n\n**Title:** ${currentVideoData.title}\n**URL:** ${currentVideoData.video_url}\n\n## Transcript\n\n${currentVideoData.transcript}\n\n## AI-Generated Summary\n\n${currentVideoData.summary}`;
+        filename = `video-summary-${Date.now()}.md`;
+    } else if (currentBookData) {
+        content = `# Book Summary\n\n**Title:** ${currentBookData.title}\n\n## Summary\n\n${currentBookData.summary}`;
+        filename = `book-summary-${Date.now()}.md`;
+    } else if (currentMeetingData) {
+        content = `# Meeting Notes\n\n## Transcript\n\n${currentMeetingData.transcript}\n\n## AI-Generated Summary\n\n${currentMeetingData.summary}`;
+        filename = `meeting-notes-${Date.now()}.md`;
+    } else {
+        return;
+    }
 
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `meeting-notes-${Date.now()}.md`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -620,14 +941,95 @@ function exportModalAsMarkdown() {
 
 // Copy to Clipboard from Modal
 function copyModalToClipboard() {
-    if (!currentMeetingData) return;
+    let content = '';
 
-    const content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+    if (currentVideoData) {
+        content = `VIDEO: ${currentVideoData.title}\nURL: ${currentVideoData.video_url}\n\nTRANSCRIPT:\n\n${currentVideoData.transcript}\n\n\nSUMMARY:\n\n${currentVideoData.summary}`;
+    } else if (currentBookData) {
+        content = `BOOK: ${currentBookData.title}\n\nSUMMARY:\n\n${currentBookData.summary}`;
+    } else if (currentMeetingData) {
+        content = `TRANSCRIPT:\n\n${currentMeetingData.transcript}\n\n\nSUMMARY:\n\n${currentMeetingData.summary}`;
+    } else {
+        return;
+    }
 
     navigator.clipboard.writeText(content).then(() => {
-        showToast('Copied', 'Meeting notes copied to clipboard', 'success', 2000);
+        showToast('Copied', 'Content copied to clipboard', 'success', 2000);
     }).catch(err => {
         console.error('Copy failed:', err);
         showToast('Copy Failed', 'Failed to copy to clipboard', 'error');
     });
 }
+
+// Video Choice Modal Functions
+function showVideoChoiceModal() {
+    const modal = document.getElementById('videoChoiceModal');
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeVideoChoiceModal() {
+    const modal = document.getElementById('videoChoiceModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Video choice modal event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const videoChoiceModal = document.getElementById('videoChoiceModal');
+    const closeVideoChoiceBtn = document.getElementById('closeVideoChoiceModal');
+    const chooseVideoFile = document.getElementById('chooseVideoFile');
+    const chooseVideoUrl = document.getElementById('chooseVideoUrl');
+    const videoFileInput = document.getElementById('videoFile');
+    const videoUrlInput = document.getElementById('videoUrl');
+    const videoZone = document.getElementById('videoZone');
+
+    // Close modal button
+    if (closeVideoChoiceBtn) {
+        closeVideoChoiceBtn.addEventListener('click', closeVideoChoiceModal);
+    }
+
+    // Close modal when clicking outside
+    if (videoChoiceModal) {
+        videoChoiceModal.addEventListener('click', function(e) {
+            if (e.target === videoChoiceModal) {
+                closeVideoChoiceModal();
+            }
+        });
+    }
+
+    // Choose file option
+    if (chooseVideoFile && videoFileInput) {
+        chooseVideoFile.addEventListener('click', function() {
+            closeVideoChoiceModal();
+            videoFileInput.click();
+        });
+    }
+
+    // Choose URL option
+    if (chooseVideoUrl && videoUrlInput && videoZone) {
+        chooseVideoUrl.addEventListener('click', function() {
+            closeVideoChoiceModal();
+            // Show URL input in the video zone
+            videoZone.classList.add('active');
+            videoUrlInput.style.display = 'block';
+            setTimeout(() => {
+                videoUrlInput.focus();
+            }, 100);
+        });
+    }
+
+    // Hide URL input when it loses focus and is empty
+    if (videoUrlInput && videoZone) {
+        videoUrlInput.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.style.display = 'none';
+                videoZone.classList.remove('active');
+            }
+        });
+    }
+});

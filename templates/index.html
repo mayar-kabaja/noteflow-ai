@@ -2,41 +2,44 @@
 
 {% block content %}
 <div class="upload-section">
-    <h2>Upload Your Voice Note</h2>
-    <p>Transform your audio recordings into structured meeting notes with AI</p>
+    <h2>Upload Your Content</h2>
+    <p>Transform audio recordings, books, and videos into AI-powered notes and summaries</p>
 
     <form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
-        <!-- Two Column Layout -->
-        <div class="input-grid">
+        <!-- Four Column Layout -->
+        <div class="input-grid" style="grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;">
             <!-- Voice Recording Section -->
-            <div class="recording-section recording-section-compact">
-                <h3>&#x1F3A4; Record Your Voice</h3>
-                <p class="recording-hint">Click to start recording</p>
+            <div class="upload-column">
+                <h3>🎙️ Record Audio</h3>
+                <div class="recording-section recording-section-compact">
+                    <div class="drop-zone-icon recording-icon">🔴</div>
+                    <p class="recording-hint">Click to start recording</p>
 
-                <div class="recording-controls">
-                    <button type="button" class="btn-record btn-record-compact" id="recordBtn">
-                        <span class="record-icon">&#x1F3A4;</span>
-                        <span class="record-text">Record</span>
-                    </button>
+                    <div class="recording-controls">
+                        <button type="button" class="btn-record btn-record-compact" id="recordBtn">
+                            <span class="record-icon">🎙️</span>
+                            <span class="record-text">Record</span>
+                        </button>
 
-                    <button type="button" class="btn-stop btn-stop-compact" id="stopBtn" style="display: none;">
-                        <span>&#x23F9;</span>
-                        <span>Stop</span>
-                    </button>
-                </div>
+                        <button type="button" class="btn-stop btn-stop-compact" id="stopBtn" style="display: none;">
+                            <span>⏹️</span>
+                            <span>Stop</span>
+                        </button>
+                    </div>
 
-                <div class="recording-timer" id="recordingTimer" style="display: none;">
-                    <span class="recording-pulse"></span>
-                    <span id="timerDisplay">00:00</span>
-                </div>
+                    <div class="recording-timer" id="recordingTimer" style="display: none;">
+                        <span class="recording-pulse"></span>
+                        <span id="timerDisplay">00:00</span>
+                    </div>
 
-                <div class="audio-preview" id="audioPreview" style="display: none;">
-                    <p>Preview:</p>
-                    <audio id="audioPlayback" controls></audio>
-                    <button type="button" class="btn btn-secondary btn-small" id="discardBtn">
-                        <span>&#x1F5D1;</span>
-                        <span>Discard</span>
-                    </button>
+                    <div class="audio-preview" id="audioPreview" style="display: none;">
+                        <p>Preview:</p>
+                        <audio id="audioPlayback" controls></audio>
+                        <button type="button" class="btn btn-secondary btn-small" id="discardBtn">
+                            <span>🗑️</span>
+                            <span>Discard</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -45,13 +48,47 @@
                 <span>OR</span>
             </div>
 
-            <!-- Upload Section -->
+            <!-- Audio Upload Section -->
             <div class="upload-column">
+                <h3>📁 Upload Audio</h3>
                 <div class="drop-zone" id="dropZone">
-                    <div class="drop-zone-icon">&#x1F4C4;</div>
-                    <div class="drop-zone-text">Drag & drop audio file</div>
-                    <div class="drop-zone-hint">or click to browse</div>
+                    <div class="drop-zone-icon">🎵</div>
+                    <div class="drop-zone-text">Audio file</div>
+                    <div class="drop-zone-hint">MP3, WAV, M4A</div>
                     <input type="file" id="audioFile" name="audio" accept="audio/*,.opus" class="file-input">
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider-vertical">
+                <span>OR</span>
+            </div>
+
+            <!-- Video Section -->
+            <div class="upload-column">
+                <h3>🎬 Video</h3>
+                <div class="drop-zone video-zone" id="videoZone">
+                    <div class="drop-zone-icon">📺</div>
+                    <div class="drop-zone-text">Add video</div>
+                    <div class="drop-zone-hint">File or YouTube URL</div>
+                    <input type="file" id="videoFile" name="video" accept="video/*,.mp4,.mov,.avi,.mkv,.webm,.flv,.m4v" class="file-input" style="display: none;">
+                    <input type="text" id="videoUrl" name="video_url" placeholder="https://youtube.com/watch?v=..." class="video-url-input" style="display: none;">
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider-vertical">
+                <span>OR</span>
+            </div>
+
+            <!-- Book Upload Section -->
+            <div class="upload-column">
+                <h3>📚 Upload Book</h3>
+                <div class="drop-zone" id="dropZoneBook">
+                    <div class="drop-zone-icon">📖</div>
+                    <div class="drop-zone-text">Book file</div>
+                    <div class="drop-zone-hint">PDF, EPUB, TXT, DOCX</div>
+                    <input type="file" id="bookFile" name="book" accept=".pdf,.epub,.txt,.docx,.doc" class="file-input">
                 </div>
             </div>
         </div>
@@ -62,16 +99,9 @@
 
         <button type="submit" class="btn" id="submitBtn">
             <span>&#x1F680;</span>
-            <span>Process Audio</span>
+            <span id="submitBtnText">Process</span>
         </button>
     </form>
-</div>
-
-<div class="container" style="margin-top: 40px; text-align: center;">
-    <a href="/history" class="btn btn-secondary" style="text-decoration: none;">
-        <span>&#x1F4C2;</span>
-        <span>View History</span>
-    </a>
 </div>
 
 <!-- Result Modal -->
@@ -139,10 +169,35 @@
                     <span>&#x2B06;</span>
                     <span>Upload Another File</span>
                 </button>
-                <a href="/history" class="btn btn-secondary">
-                    <span>&#x1F4C2;</span>
-                    <span>View History</span>
-                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Choice Modal -->
+<div id="videoChoiceModal" class="modal video-choice-modal">
+    <div class="modal-content video-choice-content">
+        <div class="modal-header">
+            <h2>
+                <span>🎬</span>
+                <span>Choose Video Source</span>
+            </h2>
+            <button class="modal-close" id="closeVideoChoiceModal">
+                <span>&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="video-choice-options">
+                <button class="video-choice-btn" id="chooseVideoFile">
+                    <span class="choice-icon">📁</span>
+                    <span class="choice-title">Upload File</span>
+                    <span class="choice-desc">MP4, MOV, AVI, MKV, WEBM</span>
+                </button>
+                <button class="video-choice-btn" id="chooseVideoUrl">
+                    <span class="choice-icon">🔗</span>
+                    <span class="choice-title">YouTube URL</span>
+                    <span class="choice-desc">Paste link to video</span>
+                </button>
             </div>
         </div>
     </div>
