@@ -3,6 +3,7 @@ Main Flask application for NoteFlow AI
 """
 import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 from config import Config
 from models.meeting import db, Meeting, Book, Video
@@ -17,6 +18,9 @@ app.config.from_object(Config)
 
 # Initialize database
 db.init_app(app)
+
+# Initialize Flask-Migrate for database migrations
+migrate = Migrate(app, db)
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
