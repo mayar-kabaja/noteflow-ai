@@ -214,20 +214,32 @@ function addAIMessage(text) {
 
 // ============== PROGRESS BAR FUNCTIONS ==============
 
-function createProgressBar() {
+function createProgressBar(showProgress = true) {
     const progressContainer = document.createElement('div');
-    progressContainer.className = 'progress-container';
+    progressContainer.className = showProgress ? 'progress-container' : 'typing-indicator-container';
     progressContainer.id = 'progressContainer';
 
-    progressContainer.innerHTML = `
-        <div class="progress-bar-wrapper">
-            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-        </div>
-        <div class="progress-text">
-            <span class="progress-stage" id="progressStage">Initializing...</span>
-            <span class="progress-percentage" id="progressPercentage">0%</span>
-        </div>
-    `;
+    if (showProgress) {
+        // Progress bar with percentage (for file uploads)
+        progressContainer.innerHTML = `
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text">
+                <span class="progress-stage" id="progressStage">Processing...</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+        `;
+    } else {
+        // Simple typing indicator (for URLs/quick operations)
+        progressContainer.innerHTML = `
+            <div class="typing-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        `;
+    }
 
     return progressContainer;
 }
@@ -264,38 +276,21 @@ function setProgressError() {
 
 // ============== PROCESSING MESSAGE WITH PROGRESS ==============
 
-function addProcessingMessage(customMessage = 'Processing your content...') {
-    playSound('processing'); // Play processing sound
+function addProcessingMessage(customMessage = 'Processing...', showProgress = true) {
+    playSound('processing');
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message ai-message processing-message';
-    messageDiv.id = 'processingMessage';
+    const loaderDiv = document.createElement('div');
+    loaderDiv.className = 'standalone-loader';
+    loaderDiv.id = 'processingMessage';
 
-    messageDiv.innerHTML = `
-        <div class="message-avatar">🤖</div>
-        <div class="message-content">
-            <div class="message-bubble">
-                <p id="processingText">${customMessage}</p>
-            </div>
-        </div>
-    `;
+    loaderDiv.appendChild(createProgressBar(showProgress));
 
-    chatMessages.appendChild(messageDiv);
-
-    // Add progress bar
-    const bubble = messageDiv.querySelector('.message-bubble');
-    bubble.appendChild(createProgressBar());
-
+    chatMessages.appendChild(loaderDiv);
     scrollToBottom();
-    return messageDiv;
+    return loaderDiv;
 }
 
 function updateProcessingMessage(newMessage, percentage) {
-    const processingText = document.getElementById('processingText');
-    if (processingText && newMessage) {
-        processingText.textContent = newMessage;
-    }
-
     // Update progress if percentage provided
     if (percentage !== undefined) {
         updateProgress(percentage, newMessage);
@@ -385,17 +380,17 @@ function startProgressSimulation(dataType) {
     // Define stages for different file types
     const stages = {
         video: [
-            { start: 5, end: 25, message: '🎬 Extracting audio from video...', duration: 3000 },
-            { start: 25, end: 70, message: '🎙️ Transcribing audio...', duration: 8000 },
-            { start: 70, end: 95, message: '✨ Generating AI summary...', duration: 5000 }
+            { start: 5, end: 25, message: 'Extracting audio...', duration: 3000 },
+            { start: 25, end: 70, message: 'Transcribing...', duration: 8000 },
+            { start: 70, end: 95, message: 'Summarizing...', duration: 5000 }
         ],
         audio: [
-            { start: 5, end: 70, message: '🎤 Transcribing audio...', duration: 8000 },
-            { start: 70, end: 95, message: '✨ Generating AI summary...', duration: 5000 }
+            { start: 5, end: 70, message: 'Transcribing...', duration: 8000 },
+            { start: 70, end: 95, message: 'Summarizing...', duration: 5000 }
         ],
         book: [
-            { start: 5, end: 40, message: '📖 Extracting text from book...', duration: 4000 },
-            { start: 40, end: 95, message: '✨ Generating AI summary...', duration: 6000 }
+            { start: 5, end: 40, message: 'Extracting text...', duration: 4000 },
+            { start: 40, end: 95, message: 'Summarizing...', duration: 6000 }
         ]
     };
 
@@ -459,9 +454,9 @@ async function processFile(file) {
         throw new Error('Unsupported file type');
     }
 
-    // Start with initial message
-    addProcessingMessage('🚀 Starting processing...');
-    updateProgress(5, '🚀 Starting processing...');
+    // File upload - use progress bar with percentage
+    addProcessingMessage('Processing...', true);
+    updateProgress(5, 'Processing...');
 
     // Simulate realistic progress through stages
     const progressSimulator = startProgressSimulation(dataType);
@@ -904,19 +899,8 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
         size: ''
     });
 
-    addProcessingMessage('🎬 Fetching YouTube transcript...');
-    updateProgress(10, '🎬 Fetching YouTube transcript...');
-
-    // Simulate YouTube processing progress
-    let youtubeProgress = 10;
-    const youtubeInterval = setInterval(() => {
-        youtubeProgress += 5;
-        if (youtubeProgress <= 60) {
-            updateProgress(youtubeProgress, '🎬 Fetching YouTube transcript...');
-        } else if (youtubeProgress <= 95) {
-            updateProgress(youtubeProgress, '✨ Generating AI summary...');
-        }
-    }, 300);
+    // YouTube URL - use typing indicator (no progress bar)
+    addProcessingMessage('Processing...', false);
 
     try {
         const response = await fetch('/videos/process', {
@@ -952,9 +936,6 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
         }, 500);
 
     } catch (error) {
-        clearInterval(youtubeInterval);
-        setProgressError();
-        updateProcessingMessage(`❌ Failed`, 100);
 
         setTimeout(() => {
             removeProcessingMessage();
@@ -1037,8 +1018,8 @@ async function sendUserMessage() {
     // Clear input
     userMessageInput.value = '';
     
-    // Show processing
-    const processingMsg = addProcessingMessage();
+    // Show typing indicator (no progress bar for chat)
+    const processingMsg = addProcessingMessage('', false);
     
     try {
         // Send to backend
