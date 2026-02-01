@@ -10,6 +10,7 @@ from services.transcription import transcribe_audio
 from services.summarization import generate_summary, translate_text, summarize_book
 from services.book_extraction import extract_text_from_book, get_book_title_from_text
 from services.video_extraction import get_youtube_transcript, get_video_title_from_url
+from utils.video_utils import extract_audio_from_video, cleanup_file
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -275,46 +276,61 @@ def process_video():
             if not allowed_video_file(file.filename):
                 return jsonify({'success': False, 'message': 'Invalid file type. Allowed: MP4, MOV, AVI, MKV, WEBM, FLV, M4V'}), 400
 
-            # Save the file
+            # Save the video file
             filename = secure_filename(file.filename)
             import time
             timestamp = str(int(time.time()))
             filename = f"{timestamp}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+            video_filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(video_filepath)
 
-            # Step 1: Transcribe video using AssemblyAI (it supports video files)
-            print(f"Transcribing video file: {filename}", flush=True)
-            transcript = transcribe_audio(filepath)  # AssemblyAI handles video files too
-            print(f"=== TRANSCRIPT ===", flush=True)
-            print(transcript, flush=True)
-            print(f"=== END TRANSCRIPT (length: {len(transcript)} chars) ===", flush=True)
+            audio_filepath = None
+            try:
+                # Step 1: Extract audio from video (MUCH FASTER than sending whole video!)
+                print(f"Extracting audio from video: {filename}", flush=True)
+                audio_filepath = extract_audio_from_video(video_filepath)
+                print(f"Audio extracted successfully!", flush=True)
 
-            # Step 2: Generate AI summary
-            print(f"Generating video summary...", flush=True)
-            summary = summarize_book(transcript)
-            print(f"=== SUMMARY ===", flush=True)
-            print(summary, flush=True)
-            print(f"=== END SUMMARY ===", flush=True)
+                # Step 2: Transcribe the extracted audio (faster and smaller file)
+                print(f"Transcribing extracted audio...", flush=True)
+                transcript = transcribe_audio(audio_filepath)
+                print(f"=== TRANSCRIPT ===", flush=True)
+                print(transcript, flush=True)
+                print(f"=== END TRANSCRIPT (length: {len(transcript)} chars) ===", flush=True)
 
-            # Step 3: Save to database
-            video = Video(
-                title=file.filename,  # Original filename as title
-                video_url=filename,  # Store filename in video_url field
-                video_id='file_upload',
-                transcript=transcript[:50000],
-                summary=summary
-            )
-            db.session.add(video)
-            db.session.commit()
+                # Step 3: Generate AI summary
+                print(f"Generating video summary...", flush=True)
+                summary = summarize_book(transcript)
+                print(f"=== SUMMARY ===", flush=True)
+                print(summary, flush=True)
+                print(f"=== END SUMMARY ===", flush=True)
 
-            print(f"Video saved with ID: {video.id}")
+                # Step 4: Save to database
+                video = Video(
+                    title=file.filename,  # Original filename as title
+                    video_url=filename,  # Store filename in video_url field
+                    video_id='file_upload',
+                    transcript=transcript[:50000],
+                    summary=summary
+                )
+                db.session.add(video)
+                db.session.commit()
 
-            return jsonify({
-                'success': True,
-                'video_id': video.id,
-                'message': 'Video processed successfully'
-            })
+                print(f"Video saved with ID: {video.id}")
+
+                return jsonify({
+                    'success': True,
+                    'video_id': video.id,
+                    'message': 'Video processed successfully'
+                })
+
+            finally:
+                # Cleanup: Delete extracted audio file to save space
+                if audio_filepath:
+                    cleanup_file(audio_filepath)
+                # Optionally delete original video file to save space
+                # Uncomment the line below if you don't need to keep video files
+                # cleanup_file(video_filepath)
 
         else:
             # YouTube URL processing

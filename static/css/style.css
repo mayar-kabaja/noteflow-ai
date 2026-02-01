@@ -3516,3 +3516,127 @@ a[title]:hover::after {
         text-align: center;
     }
 }
+
+/* ===================================
+   PROGRESS BAR
+   =================================== */
+
+.progress-container {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.progress-bar-wrapper {
+    width: 100%;
+    height: 8px;
+    background: rgba(64, 64, 64, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--primary-color) 0%,
+        var(--primary-light) 50%,
+        var(--primary-color) 100%);
+    background-size: 200% 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease-out;
+    animation: progressShimmer 2s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: progressGlare 1.5s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes progressGlare {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.progress-stage {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.progress-percentage {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Progress bar in processing message */
+.processing-message .progress-container {
+    margin: 12px 0 0 0;
+}
+
+/* Completion state */
+.progress-bar.complete {
+    background: linear-gradient(90deg,
+        var(--success-color) 0%,
+        #14f195 50%,
+        var(--success-color) 100%);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* Error state */
+.progress-bar.error {
+    background: linear-gradient(90deg,
+        var(--error-color) 0%,
+        #f87171 50%,
+        var(--error-color) 100%);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    animation: none;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+    .progress-container {
+        max-width: 100%;
+    }
+
+    .progress-text {
+        font-size: 0.8rem;
+    }
+}

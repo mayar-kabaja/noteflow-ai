@@ -214,7 +214,59 @@ function addAIMessage(text) {
     return messageDiv;
 }
 
-function addProcessingMessage() {
+// ============== PROGRESS BAR FUNCTIONS ==============
+
+function createProgressBar() {
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress-container';
+    progressContainer.id = 'progressContainer';
+
+    progressContainer.innerHTML = `
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="progress-text">
+            <span class="progress-stage" id="progressStage">Initializing...</span>
+            <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
+    `;
+
+    return progressContainer;
+}
+
+function updateProgress(percentage, stage) {
+    const progressBar = document.getElementById('progressBar');
+    const progressStage = document.getElementById('progressStage');
+    const progressPercentage = document.getElementById('progressPercentage');
+
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
+
+        // Add complete class when done
+        if (percentage >= 100) {
+            progressBar.classList.add('complete');
+        }
+    }
+
+    if (progressStage && stage) {
+        progressStage.textContent = stage;
+    }
+
+    if (progressPercentage) {
+        progressPercentage.textContent = `${Math.round(percentage)}%`;
+    }
+}
+
+function setProgressError() {
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.classList.add('error');
+    }
+}
+
+// ============== PROCESSING MESSAGE WITH PROGRESS ==============
+
+function addProcessingMessage(customMessage = 'Processing your content...') {
     playSound('processing'); // Play processing sound
 
     const messageDiv = document.createElement('div');
@@ -225,19 +277,31 @@ function addProcessingMessage() {
         <div class="message-avatar">🤖</div>
         <div class="message-content">
             <div class="message-bubble">
-                <p>Processing your content...</p>
-                <div class="processing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+                <p id="processingText">${customMessage}</p>
             </div>
         </div>
     `;
 
     chatMessages.appendChild(messageDiv);
+
+    // Add progress bar
+    const bubble = messageDiv.querySelector('.message-bubble');
+    bubble.appendChild(createProgressBar());
+
     scrollToBottom();
     return messageDiv;
+}
+
+function updateProcessingMessage(newMessage, percentage) {
+    const processingText = document.getElementById('processingText');
+    if (processingText && newMessage) {
+        processingText.textContent = newMessage;
+    }
+
+    // Update progress if percentage provided
+    if (percentage !== undefined) {
+        updateProgress(percentage, newMessage);
+    }
 }
 
 function removeProcessingMessage() {
@@ -314,38 +378,97 @@ function handleFileSelection(file) {
     processFile(file);
 }
 
+// ============== PROGRESS SIMULATION ==============
+
+function startProgressSimulation(dataType) {
+    let currentProgress = 5;
+    let currentStage = 0;
+
+    // Define stages for different file types
+    const stages = {
+        video: [
+            { start: 5, end: 25, message: '🎬 Extracting audio from video...', duration: 3000 },
+            { start: 25, end: 70, message: '🎙️ Transcribing audio...', duration: 8000 },
+            { start: 70, end: 95, message: '✨ Generating AI summary...', duration: 5000 }
+        ],
+        audio: [
+            { start: 5, end: 70, message: '🎤 Transcribing audio...', duration: 8000 },
+            { start: 70, end: 95, message: '✨ Generating AI summary...', duration: 5000 }
+        ],
+        book: [
+            { start: 5, end: 40, message: '📖 Extracting text from book...', duration: 4000 },
+            { start: 40, end: 95, message: '✨ Generating AI summary...', duration: 6000 }
+        ]
+    };
+
+    const fileStages = stages[dataType] || stages.audio;
+    let stageIndex = 0;
+    let stageStartTime = Date.now();
+
+    const interval = setInterval(() => {
+        const currentStageData = fileStages[stageIndex];
+        if (!currentStageData) {
+            clearInterval(interval);
+            return;
+        }
+
+        const elapsedTime = Date.now() - stageStartTime;
+        const stageProgress = Math.min(elapsedTime / currentStageData.duration, 1);
+
+        // Calculate current progress based on stage
+        currentProgress = currentStageData.start +
+            (currentStageData.end - currentStageData.start) * stageProgress;
+
+        // Update UI
+        updateProcessingMessage(currentStageData.message, currentProgress);
+
+        // Move to next stage if current stage is complete
+        if (stageProgress >= 1 && stageIndex < fileStages.length - 1) {
+            stageIndex++;
+            stageStartTime = Date.now();
+        }
+    }, 200); // Update every 200ms for smooth animation
+
+    return { interval, stages: fileStages };
+}
+
 // ============== FILE PROCESSING ==============
 
 async function processFile(file) {
-    const processingMsg = addProcessingMessage();
+    // Determine file type first
+    const ext = file.name.split('.').pop().toLowerCase();
+    const audioExts = ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'];
+    const videoExts = ['mp4', 'mov', 'avi', 'mkv'];
+    const bookExts = ['pdf', 'epub', 'txt', 'docx', 'doc'];
+
+    let endpoint;
+    let formField;
+    let dataType;
+
+    if (audioExts.includes(ext)) {
+        endpoint = '/upload';
+        formField = 'audio';
+        dataType = 'audio';
+    } else if (videoExts.includes(ext)) {
+        endpoint = '/videos/process';
+        formField = 'video';
+        dataType = 'video';
+    } else if (bookExts.includes(ext)) {
+        endpoint = '/books/upload';
+        formField = 'book';
+        dataType = 'book';
+    } else {
+        throw new Error('Unsupported file type');
+    }
+
+    // Start with initial message
+    addProcessingMessage('🚀 Starting processing...');
+    updateProgress(5, '🚀 Starting processing...');
+
+    // Simulate realistic progress through stages
+    const progressSimulator = startProgressSimulation(dataType);
 
     try {
-        // Determine file type
-        const ext = file.name.split('.').pop().toLowerCase();
-        const audioExts = ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'];
-        const videoExts = ['mp4', 'mov', 'avi', 'mkv'];
-        const bookExts = ['pdf', 'epub', 'txt', 'docx', 'doc'];
-
-        let endpoint;
-        let formField;
-        let dataType;
-
-        if (audioExts.includes(ext)) {
-            endpoint = '/upload';
-            formField = 'audio';
-            dataType = 'audio';
-        } else if (videoExts.includes(ext)) {
-            endpoint = '/videos/process';
-            formField = 'video';
-            dataType = 'video';
-        } else if (bookExts.includes(ext)) {
-            endpoint = '/books/upload';
-            formField = 'book';
-            dataType = 'book';
-        } else {
-            throw new Error('Unsupported file type');
-        }
-
         const formData = new FormData();
         formData.append(formField, file);
 
@@ -355,6 +478,12 @@ async function processFile(file) {
         });
 
         const data = await response.json();
+
+        // Stop progress simulation
+        clearInterval(progressSimulator.interval);
+
+        // Complete progress
+        updateProcessingMessage('✅ Processing complete!', 100);
 
         removeProcessingMessage();
 
@@ -378,8 +507,21 @@ async function processFile(file) {
             throw new Error(data.message || 'Processing failed');
         }
     } catch (error) {
-        removeProcessingMessage();
-        addAIMessage(`❌ Error: ${error.message}`);
+        // Stop progress simulation on error
+        if (progressSimulator) {
+            clearInterval(progressSimulator.interval);
+        }
+
+        // Show error state
+        setProgressError();
+        updateProcessingMessage(`❌ Error: ${error.message}`, 100);
+
+        // Wait a moment before removing
+        setTimeout(() => {
+            removeProcessingMessage();
+            addAIMessage(`❌ Error: ${error.message}`);
+        }, 1500);
+
         showToast('Error', error.message, 'error');
     }
 
@@ -764,7 +906,19 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
         size: ''
     });
 
-    const processingMsg = addProcessingMessage();
+    addProcessingMessage('🎬 Fetching YouTube transcript...');
+    updateProgress(10, '🎬 Fetching YouTube transcript...');
+
+    // Simulate YouTube processing progress
+    let youtubeProgress = 10;
+    const youtubeInterval = setInterval(() => {
+        youtubeProgress += 5;
+        if (youtubeProgress <= 60) {
+            updateProgress(youtubeProgress, '🎬 Fetching YouTube transcript...');
+        } else if (youtubeProgress <= 95) {
+            updateProgress(youtubeProgress, '✨ Generating AI summary...');
+        }
+    }, 300);
 
     try {
         const response = await fetch('/videos/process', {
@@ -777,21 +931,38 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
 
         const data = await response.json();
 
-        removeProcessingMessage();
+        // Stop progress simulation
+        clearInterval(youtubeInterval);
 
-        if (data.success) {
-            // Fetch the video result data
-            const res = await fetch(`/api/video/${data.video_id}`);
-            const resultData = await res.json();
+        // Complete progress
+        updateProcessingMessage('✅ Processing complete!', 100);
 
-            // Show result in chat
-            addResultMessage(resultData, 'video');
-        } else {
-            throw new Error(data.message || 'Processing failed');
-        }
+        setTimeout(() => {
+            removeProcessingMessage();
+
+            if (data.success) {
+                // Fetch the video result data
+                fetch(`/api/video/${data.video_id}`)
+                    .then(res => res.json())
+                    .then(resultData => {
+                        // Show result in chat
+                        addResultMessage(resultData, 'video');
+                    });
+            } else {
+                throw new Error(data.message || 'Processing failed');
+            }
+        }, 500);
+
     } catch (error) {
-        removeProcessingMessage();
-        addAIMessage(`❌ Error: ${error.message}`);
+        clearInterval(youtubeInterval);
+        setProgressError();
+        updateProcessingMessage(`❌ Error: ${error.message}`, 100);
+
+        setTimeout(() => {
+            removeProcessingMessage();
+            addAIMessage(`❌ Error: ${error.message}`);
+        }, 1500);
+
         showToast('Error', error.message, 'error');
     }
 

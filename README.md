@@ -15,11 +15,18 @@ A modern web application that automatically converts audio recordings, books, an
 - **Smart Summarization**: AI-powered meeting notes generation using OpenAI GPT
 - **Meeting History**: View and access all past meeting notes
 
-### Book Summarization (NEW!)
+### Book Summarization
 - **Multiple Format Support**: Upload PDF, EPUB, TXT, or DOCX files
 - **AI-Powered Summaries**: Get comprehensive summaries with key points and takeaways
 - **Book History**: Access all previously summarized books
 - **Smart Text Extraction**: Automatically extract text from various book formats
+
+### Video Summarization ⚡ OPTIMIZED!
+- **YouTube Integration**: Paste any YouTube URL for instant transcript extraction
+- **Video File Upload**: Support for MP4, MOV, AVI, MKV, WebM, FLV, M4V
+- **Smart Audio Extraction**: Automatically extracts audio from videos for 3-5x faster processing
+- **Optimized Performance**: Videos process in minutes instead of hours
+- **AI Summaries**: Get comprehensive video summaries with key insights
 
 ### General Features
 - **Multi-Language Translation**: Translate summaries to 12+ languages including Spanish, French, German, Arabic, Chinese, Japanese, and more
@@ -37,6 +44,7 @@ A modern web application that automatically converts audio recordings, books, an
 - **SQLAlchemy** - Database ORM
 - **AssemblyAI** - Audio transcription API
 - **OpenAI GPT** - AI summarization and translation
+- **MoviePy** - Video processing and audio extraction
 - **SQLite** - Database (PostgreSQL compatible)
 
 ### Frontend
