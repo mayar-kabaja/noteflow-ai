@@ -362,7 +362,22 @@ function handleFileSelection(file) {
     const fileIcon = getFileIcon(file.name);
     const fileSize = formatFileSize(file.size);
 
-    addUserMessage('Uploaded a file', {
+    // Determine file type for better messaging
+    const ext = file.name.split('.').pop().toLowerCase();
+    const audioExts = ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'];
+    const videoExts = ['mp4', 'mov', 'avi', 'mkv'];
+    const bookExts = ['pdf', 'epub', 'txt', 'docx', 'doc'];
+
+    let fileTypeLabel = 'a file';
+    if (audioExts.includes(ext)) {
+        fileTypeLabel = 'an audio file';
+    } else if (videoExts.includes(ext)) {
+        fileTypeLabel = 'a video file';
+    } else if (bookExts.includes(ext)) {
+        fileTypeLabel = 'a book/document';
+    }
+
+    addUserMessage(`Uploaded ${fileTypeLabel}`, {
         icon: fileIcon,
         name: file.name,
         size: fileSize
@@ -1033,27 +1048,20 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
 
         const data = await response.json();
 
-        // Stop progress simulation
-        clearInterval(youtubeInterval);
+        // Remove processing indicator
+        removeProcessingMessage();
 
-        // Complete progress
-        updateProcessingMessage('✅ Processing complete!', 100);
-
-        setTimeout(() => {
-            removeProcessingMessage();
-
-            if (data.success) {
-                // Fetch the video result data
-                fetch(`/api/video/${data.video_id}`)
-                    .then(res => res.json())
-                    .then(resultData => {
-                        // Show result in chat
-                        addResultMessage(resultData, 'video');
-                    });
-            } else {
-                throw new Error(data.message || 'Processing failed');
-            }
-        }, 500);
+        if (data.success) {
+            // Fetch the video result data
+            fetch(`/api/video/${data.video_id}`)
+                .then(res => res.json())
+                .then(resultData => {
+                    // Show result in chat
+                    addResultMessage(resultData, 'video');
+                });
+        } else {
+            throw new Error(data.message || 'Processing failed');
+        }
 
     } catch (error) {
 
