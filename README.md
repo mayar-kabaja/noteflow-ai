@@ -41,7 +41,7 @@ A modern web application that automatically converts audio recordings, books, an
 - **Flask** - Python web framework
 - **SQLAlchemy** - Database ORM
 - **AssemblyAI** - Audio transcription API
-- **OpenAI GPT** - AI summarization and translation
+- **Groq (Llama 3.3)** - AI summarization and translation
 - **MoviePy** - Video processing and audio extraction
 - **SQLite** - Database (PostgreSQL compatible)
 
@@ -58,9 +58,9 @@ A modern web application that automatically converts audio recordings, books, an
 - Python 3.8 or higher
 - pip (Python package manager)
 - API Keys:
-  - [OpenAI API Key](https://platform.openai.com/api-keys)
-  - [AssemblyAI API Key](https://www.assemblyai.com/)
-  - [Groq API Key](https://console.groq.com/) (optional)
+  - [AssemblyAI API Key](https://www.assemblyai.com/) - For audio transcription
+  - [Groq API Key](https://console.groq.com/) - For AI summarization (required)
+  - [OpenAI API Key](https://platform.openai.com/api-keys) - Optional alternative to Groq
 
 ---
 
@@ -126,9 +126,10 @@ Edit `config.py` to customize settings:
 ```python
 # File upload settings
 UPLOAD_FOLDER = 'static/uploads'
-MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max file size
+MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB max file size (for video files)
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'm4a', 'ogg', 'flac', 'webm', 'opus'}
 ALLOWED_BOOK_EXTENSIONS = {'pdf', 'epub', 'txt', 'docx', 'doc'}
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'm4v'}
 
 # Database settings
 SQLALCHEMY_DATABASE_URI = 'sqlite:///noteflow.db'
@@ -158,11 +159,18 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///noteflow.db'
 - All actions happen in the modal without page reloads
 
 ### Summarizing Books
-1. Navigate to the "Books" section from the header navigation
+1. Navigate to `/books` or click the "Voice Notes" → "Books" link
 2. Drag and drop a book file (PDF, EPUB, TXT, or DOCX)
 3. Click "Summarize Book" to begin processing
 4. View your comprehensive AI-generated summary in the modal
 5. Translate, export, or copy the summary as needed
+
+### Processing Videos
+1. On the chat interface, click the YouTube button (🎬) or upload a video file
+2. **YouTube**: Paste a YouTube URL and click "Send"
+3. **Video File**: Upload MP4, MOV, AVI, MKV, WebM, FLV, or M4V files
+4. The app extracts audio from videos for faster processing
+5. View transcript and AI-generated summary in the chat
 
 ---
 
@@ -229,6 +237,56 @@ Response:
 ]
 ```
 
+### Upload Book
+```http
+POST /books/upload
+Content-Type: multipart/form-data
+
+Response:
+{
+  "success": true,
+  "book_id": 1,
+  "message": "Book processed successfully"
+}
+```
+
+### Process Video
+```http
+POST /videos/process
+Content-Type: multipart/form-data OR application/json
+
+Body (for YouTube URL):
+{
+  "video_url": "https://youtube.com/watch?v=..."
+}
+
+Response:
+{
+  "success": true,
+  "video_id": 1,
+  "message": "Video processed successfully"
+}
+```
+
+### Chat with AI
+```http
+POST /api/chat
+Content-Type: application/json
+
+Body:
+{
+  "message": "Your question here",
+  "context_type": "audio|video|book",  // optional
+  "context_id": 1  // optional
+}
+
+Response:
+{
+  "success": true,
+  "response": "AI response here"
+}
+```
+
 ---
 
 ## Project Structure
@@ -242,22 +300,24 @@ noteflow-ai/
 ├── .env.example           # Environment variables template
 ├── models/
 │   ├── __init__.py
-│   └── meeting.py         # Database models (Meeting & Book)
+│   └── meeting.py         # Database models (Meeting, Book, Video)
 ├── services/
 │   ├── __init__.py
 │   ├── transcription.py   # AssemblyAI integration
-│   ├── summarization.py   # AI summarization (Groq)
-│   └── book_extraction.py # Book text extraction (PDF/EPUB/DOCX/TXT)
+│   ├── summarization.py   # AI summarization (Groq Llama 3.3)
+│   ├── book_extraction.py # Book text extraction (PDF/EPUB/DOCX/TXT)
+│   └── video_extraction.py # YouTube transcript extraction
 ├── templates/
-│   ├── base.html          # Base template with navigation
-│   ├── index.html         # Voice notes upload & chat
-│   └── books.html         # Book upload & modal
+│   ├── base.html          # Base template
+│   ├── index.html         # Chat interface with voice/video/book upload
+│   └── books.html         # Book upload page
 ├── static/
 │   ├── css/
 │   │   └── style.css      # Styles
 │   ├── js/
-│   │   └── main.js        # Frontend logic
-│   └── uploads/           # Uploaded audio files
+│   │   ├── main.js        # Frontend logic (books page)
+│   │   └── chat.js        # Chat interface logic
+│   └── uploads/           # Uploaded files (audio/video/books)
 └── utils/
     ├── __init__.py
     └── video_utils.py     # Video audio extraction
@@ -302,8 +362,9 @@ Audio recording requires HTTPS or localhost for security reasons.
 - Ensure you have sufficient credits
 
 ### File Upload Errors
-- Maximum file size is 100MB
+- Maximum file size is 500MB (for video files)
 - **Audio formats**: MP3, WAV, M4A, OGG, FLAC, WebM, OPUS
+- **Video formats**: MP4, MOV, AVI, MKV, WebM, FLV, M4V
 - **Book formats**: PDF, EPUB, TXT, DOCX, DOC
 - Clear browser cache if issues persist
 
@@ -337,16 +398,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Mayar**
 
-Built with ❤️ using Flask, OpenAI, and AssemblyAI
+Built with ❤️ using Flask, Groq, and AssemblyAI
 
 ---
 
 ## Acknowledgments
 
-- [OpenAI](https://openai.com/) for GPT API
+- [Groq](https://groq.com/) for fast AI inference with Llama 3.3
 - [AssemblyAI](https://www.assemblyai.com/) for transcription services
 - [Flask](https://flask.palletsprojects.com/) for the web framework
-- [Groq](https://groq.com/) for fast AI inference
+- [MoviePy](https://zulko.github.io/moviepy/) for video processing
 
 ---
 
