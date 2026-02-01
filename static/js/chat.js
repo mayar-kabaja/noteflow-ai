@@ -536,7 +536,37 @@ function addResultMessage(data, type) {
     let transcriptSection = hasTranscript ? `
         <div class="result-section-chat">
             <h3>📝 Transcript</h3>
-            <div class="transcript-content">${escapeHtml(data.transcript)}</div>
+            <div class="summary-controls">
+                <div class="translate-dropdown-chat">
+                    <select class="translate-select" onchange="translateTranscriptInChat(this)">
+                        <option value="">🌐 Translate to...</option>
+                        <option value="Spanish">🇪🇸 Spanish</option>
+                        <option value="French">🇫🇷 French</option>
+                        <option value="German">🇩🇪 German</option>
+                        <option value="Arabic">🇸🇦 Arabic</option>
+                        <option value="Chinese">🇨🇳 Chinese</option>
+                        <option value="Japanese">🇯🇵 Japanese</option>
+                        <option value="Korean">🇰🇷 Korean</option>
+                        <option value="Portuguese">🇵🇹 Portuguese</option>
+                        <option value="Russian">🇷🇺 Russian</option>
+                        <option value="Italian">🇮🇹 Italian</option>
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Turkish">🇹🇷 Turkish</option>
+                    </select>
+                </div>
+                <div class="export-buttons-chat">
+                    <button class="export-btn-chat export-icon-btn" onclick="exportTranscriptResult(this, 'txt')" title="Export as TXT">
+                        <span>📥</span>
+                    </button>
+                    <button class="export-btn-chat export-icon-btn" onclick="exportTranscriptResult(this, 'md')" title="Export as Markdown">
+                        <span>📄</span>
+                    </button>
+                    <button class="export-btn-chat export-icon-btn" onclick="copyTranscriptResult(this)" title="Copy to clipboard">
+                        <span>📋</span>
+                    </button>
+                </div>
+            </div>
+            <div class="transcript-content" data-original-transcript="${escapeHtml(data.transcript)}">${escapeHtml(data.transcript)}</div>
         </div>
     ` : '';
 
@@ -669,6 +699,47 @@ async function translateInChat(selectElement) {
     }
 }
 
+async function translateTranscriptInChat(selectElement) {
+    const targetLanguage = selectElement.value;
+    const messageContent = selectElement.closest('.message-content');
+    const transcriptDiv = messageContent.querySelector('.transcript-content');
+    const originalTranscript = transcriptDiv.getAttribute('data-original-transcript');
+
+    if (!targetLanguage) {
+        transcriptDiv.textContent = originalTranscript;
+        return;
+    }
+
+    try {
+        const currentHTML = transcriptDiv.innerHTML;
+        transcriptDiv.textContent = `⏳ Translating to ${targetLanguage}...`;
+
+        const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: originalTranscript,
+                language: targetLanguage
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            transcriptDiv.textContent = data.translated_text;
+            showToast('Translation Complete', `Translated to ${targetLanguage}`, 'success');
+        } else {
+            transcriptDiv.innerHTML = currentHTML;
+            showToast('Translation Failed', data.message, 'error');
+            selectElement.value = '';
+        }
+    } catch (error) {
+        transcriptDiv.textContent = originalTranscript;
+        showToast('Translation Failed', 'An error occurred', 'error');
+        selectElement.value = '';
+    }
+}
+
 // ============== EXPORT FUNCTIONS ==============
 
 function exportChatResult(button, format) {
@@ -732,6 +803,55 @@ function copyChatResult(button) {
 
     navigator.clipboard.writeText(content).then(() => {
         showToast('Copied', 'Content copied to clipboard', 'success');
+    }).catch(() => {
+        showToast('Copy Failed', 'Failed to copy to clipboard', 'error');
+    });
+}
+
+// ============== TRANSCRIPT-ONLY EXPORT FUNCTIONS ==============
+
+function exportTranscriptResult(button, format) {
+    playSound('click'); // Play click sound
+
+    const messageContent = button.closest('.message-content');
+    const transcriptDiv = messageContent.querySelector('.transcript-content');
+
+    const transcript = transcriptDiv ? transcriptDiv.textContent : '';
+
+    let content;
+    let filename;
+
+    if (format === 'txt') {
+        content = `TRANSCRIPT:\n\n${transcript}`;
+        filename = `noteflow-transcript-${Date.now()}.txt`;
+    } else if (format === 'md') {
+        content = `# NoteFlow AI Transcript\n\n${transcript}`;
+        filename = `noteflow-transcript-${Date.now()}.md`;
+    }
+
+    const blob = new Blob([content], { type: format === 'txt' ? 'text/plain' : 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Export Complete', 'Transcript downloaded successfully', 'success');
+}
+
+function copyTranscriptResult(button) {
+    playSound('click'); // Play click sound
+
+    const messageContent = button.closest('.message-content');
+    const transcriptDiv = messageContent.querySelector('.transcript-content');
+
+    const transcript = transcriptDiv ? transcriptDiv.textContent : '';
+
+    navigator.clipboard.writeText(transcript).then(() => {
+        showToast('Copied', 'Transcript copied to clipboard', 'success');
     }).catch(() => {
         showToast('Copy Failed', 'Failed to copy to clipboard', 'error');
     });
