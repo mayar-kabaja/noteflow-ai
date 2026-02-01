@@ -37,43 +37,67 @@ def get_youtube_transcript(video_url):
         video_id = extract_video_id(video_url)
 
         if not video_id:
-            raise ValueError("Invalid YouTube URL")
+            print(f"ERROR: Invalid YouTube URL: {video_url}", flush=True)
+            raise ValueError("Invalid YouTube URL format")
 
-        print(f"Fetching transcript for video ID: {video_id}", flush=True)
+        print(f"=== YOUTUBE TRANSCRIPT REQUEST ===", flush=True)
+        print(f"Video ID: {video_id}", flush=True)
+        print(f"Full URL: {video_url}", flush=True)
 
-        # Create API instance
-        api = YouTubeTranscriptApi()
+        # Try to list available transcripts first
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            print(f"Available transcripts found!", flush=True)
 
-        # Try to get transcript with multiple language fallbacks
-        transcript_obj = None
-        languages_to_try = [
-            ['en'],               # English
-            ['en-US', 'en-GB'],  # English variants
-            ['ar'],               # Arabic
-            ['es'],               # Spanish
-            ['fr'],               # French
-            ['de'],               # German
-        ]
-
-        transcript_data = None
-        for languages in languages_to_try:
+            # Try to get any available transcript
             try:
-                print(f"Trying languages: {languages}", flush=True)
-                fetched = api.fetch(video_id, languages=languages)
-                # The fetch() method returns a FetchedTranscript object
-                # We need to get the segments from it
-                transcript_data = fetched.segments if hasattr(fetched, 'segments') else fetched
-                print(f"Successfully got transcript in {languages}", flush=True)
-                break
-            except Exception as e:
-                print(f"Failed with {languages}: {str(e)}", flush=True)
-                continue
+                # Try manually created transcripts first
+                transcript = transcript_list.find_manually_created_transcript(['en', 'en-US', 'en-GB'])
+                print(f"Found manually created English transcript", flush=True)
+            except:
+                try:
+                    # Try generated transcripts
+                    transcript = transcript_list.find_generated_transcript(['en', 'en-US', 'en-GB'])
+                    print(f"Found auto-generated English transcript", flush=True)
+                except:
+                    # Get any available transcript
+                    transcript = next(iter(transcript_list))
+                    print(f"Using available transcript: {transcript.language}", flush=True)
 
-        # If all language attempts failed, raise error
+            # Fetch the transcript data
+            transcript_data = transcript.fetch()
+            print(f"Transcript fetched successfully: {len(transcript_data)} segments", flush=True)
+
+        except TranscriptsDisabled:
+            print(f"ERROR: Transcripts are disabled for video {video_id}", flush=True)
+            return {
+                'success': False,
+                'error': "⚠️ This video has transcripts disabled. Please try:\n1. A different video with captions\n2. Uploading the video file directly\n3. A video with auto-generated captions enabled"
+            }
+        except NoTranscriptFound:
+            print(f"ERROR: No transcripts found for video {video_id}", flush=True)
+            return {
+                'success': False,
+                'error': "⚠️ No captions/transcripts available for this video. Please try:\n1. A video with captions enabled\n2. Uploading the video file directly"
+            }
+        except VideoUnavailable:
+            print(f"ERROR: Video {video_id} is unavailable", flush=True)
+            return {
+                'success': False,
+                'error': "⚠️ This video is unavailable. It might be:\n1. Private or deleted\n2. Region-restricted\n3. Age-restricted\nTry a different public video."
+            }
+        except Exception as e:
+            print(f"ERROR listing transcripts: {type(e).__name__}: {str(e)}", flush=True)
+            return {
+                'success': False,
+                'error': f"Failed to access YouTube video: {str(e)}"
+            }
+
+        # If we got here but no transcript_data, something went wrong
         if not transcript_data:
             return {
                 'success': False,
-                'error': "No transcript available for this video. The video may not have captions enabled."
+                'error': "No transcript data retrieved. The video may not have captions enabled."
             }
 
         print(f"Transcript fetched successfully, {len(transcript_data)} segments", flush=True)

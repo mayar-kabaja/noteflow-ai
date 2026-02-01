@@ -956,14 +956,19 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
     } catch (error) {
         clearInterval(youtubeInterval);
         setProgressError();
-        updateProcessingMessage(`❌ Error: ${error.message}`, 100);
+        updateProcessingMessage(`❌ Failed`, 100);
 
         setTimeout(() => {
             removeProcessingMessage();
-            addAIMessage(`❌ Error: ${error.message}`);
+
+            // Format error message with line breaks
+            const errorMessage = error.message || 'Unknown error';
+            const formattedError = errorMessage.replace(/\\n/g, '\n');
+
+            addAIMessage(`❌ **YouTube Processing Failed**\n\n${formattedError}\n\n💡 **Tip:** Upload the video file directly for better results!`);
         }, 1500);
 
-        showToast('Error', error.message, 'error');
+        showToast('YouTube Error', 'Could not process video. Check the chat for details.', 'error', 5000);
     }
 
     // Reset - go back to text input
