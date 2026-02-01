@@ -240,6 +240,51 @@
         </div>
     </div>
 </div>
+
+<!-- Error Testing Panel (LOCALHOST ONLY - Hidden by default - Press Ctrl+Shift+T to toggle) -->
+<!-- This panel is automatically removed in production (only works on localhost/127.0.0.1) -->
+<div id="errorTestPanel" class="error-test-panel" style="display: none;">
+    <div>
+        <div class="test-panel-header">
+            <h3>🧪 Error Testing Panel</h3>
+            <button class="test-panel-close" id="closeTestPanel">✕</button>
+        </div>
+        <div class="test-panel-body">
+            <p class="test-panel-hint">Click any button to simulate that error:</p>
+
+            <div class="test-section">
+                <h4>📁 File Upload Errors</h4>
+                <button class="test-btn" onclick="testFileRateLimit()">⏳ Rate Limit</button>
+                <button class="test-btn" onclick="testFileQuota()">💳 Quota Exceeded</button>
+                <button class="test-btn" onclick="testFileAuth()">🔑 Auth Error</button>
+                <button class="test-btn" onclick="testFileGeneric()">❌ Generic Error</button>
+            </div>
+
+            <div class="test-section">
+                <h4>🎬 YouTube Errors</h4>
+                <button class="test-btn" onclick="testYoutubeRateLimit()">⏳ Rate Limit</button>
+                <button class="test-btn" onclick="testYoutubeQuota()">💳 Quota Exceeded</button>
+                <button class="test-btn" onclick="testYoutubeGeneric()">❌ Generic Error</button>
+            </div>
+
+            <div class="test-section">
+                <h4>💬 Chat Errors</h4>
+                <button class="test-btn" onclick="testChatRateLimit()">⏳ Rate Limit</button>
+                <button class="test-btn" onclick="testChatQuota()">💳 Quota Exceeded</button>
+                <button class="test-btn" onclick="testChatGeneric()">❌ Generic Error</button>
+            </div>
+
+            <div class="test-section">
+                <h4>🌐 Translation Errors</h4>
+                <button class="test-btn" onclick="testTranslationRateLimit()">⏳ Rate Limit</button>
+                <button class="test-btn" onclick="testTranslationQuota()">💳 Quota Exceeded</button>
+            </div>
+        </div>
+        <div class="test-panel-footer">
+            <small>Press <kbd>Ctrl+Shift+T</kbd> to toggle • <kbd>Esc</kbd> to close</small>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

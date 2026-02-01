@@ -522,15 +522,40 @@ async function processFile(file) {
 
         // Show error state
         setProgressError();
-        updateProcessingMessage(`❌ Error: ${error.message}`, 100);
+        updateProcessingMessage(`❌ Error occurred`, 100);
 
         // Wait a moment before removing
         setTimeout(() => {
             removeProcessingMessage();
-            addAIMessage(`❌ Error: ${error.message}`);
-        }, 1500);
 
-        showToast('Error', error.message, 'error');
+            // Format error message for display
+            const errorMessage = error.message || 'Unknown error occurred';
+
+            // Check if it's a rate limit error
+            if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+                // Extract wait time if mentioned
+                const waitTimeMatch = errorMessage.match(/(\d+)\s*minute/i);
+                const waitTime = waitTimeMatch ? waitTimeMatch[1] : 'a few';
+
+                addAIMessage(`⏳ **Whoa, slow down there!**\n\nLooks like we've used up our API requests for now. No worries though!\n\n**What's happening?**\nOur AI service has a limit on how many requests we can make.\n\n**What to do:**\n• ☕ Take a ${waitTime}-minute coffee break and try again\n• ⚡ Want instant access? [Upgrade your plan](https://console.groq.com/settings/billing)\n• 🎯 Meanwhile, you can still work with files you've already processed!\n\nThanks for your patience! 😊`);
+                showToast('⏳ Taking a quick break', `Back in ${waitTime} minutes`, 'warning', 6000);
+            }
+            // Check if it's a quota error
+            else if (errorMessage.includes('💳') || errorMessage.toLowerCase().includes('quota')) {
+                addAIMessage(`💳 **Oops! We're out of credits**\n\nYour API account has run out of quota for this month.\n\n**Here's what you can do:**\n• 📊 [Check your usage](https://console.groq.com/settings/billing)\n• ⬆️ Upgrade your plan for more quota\n• 📅 Wait until next month for quota reset\n\nDon't worry - your processed files are safe! 🔒`);
+                showToast('💳 Quota used up', 'Check your account', 'error', 6000);
+            }
+            // Check if it's an auth error
+            else if (errorMessage.includes('🔑') || errorMessage.toLowerCase().includes('auth')) {
+                addAIMessage(`🔑 **Authentication Issue**\n\nHmm, there's a problem with the API connection.\n\n**This usually means:**\n• The API key might need to be updated\n• There might be a configuration issue\n\n**What to do:**\nPlease contact the app administrator. This isn't something you can fix on your end. 🛠️`);
+                showToast('🔑 Connection issue', 'Contact support', 'error', 6000);
+            }
+            // Generic error
+            else {
+                addAIMessage(`❌ **Oops! Something went wrong**\n\n${errorMessage}\n\n**Quick fixes to try:**\n• 🔄 Try uploading again\n• 📁 Make sure your file is a valid format\n• ⏱️ If it's a large file, try a shorter one\n• 🌐 Check your internet connection\n\nStill having issues? Let us know! 💬`);
+                showToast('⚠️ Processing failed', 'Try again', 'error', 5000);
+            }
+        }, 1500);
     }
 
     // Reset file input
@@ -554,7 +579,7 @@ function addResultMessage(data, type) {
             <div class="summary-controls">
                 <div class="translate-dropdown-chat">
                     <select class="translate-select" onchange="translateTranscriptInChat(this)">
-                        <option value="">🌐 Translate to...</option>
+                        <option value="">🌐</option>
                         <option value="Spanish">🇪🇸 Spanish</option>
                         <option value="French">🇫🇷 French</option>
                         <option value="German">🇩🇪 German</option>
@@ -599,7 +624,7 @@ function addResultMessage(data, type) {
                     <div class="summary-controls">
                         <div class="translate-dropdown-chat">
                             <select class="translate-select" onchange="translateInChat(this)">
-                                <option value="">🌐 Translate to...</option>
+                                <option value="">🌐</option>
                                 <option value="Spanish">🇪🇸 Spanish</option>
                                 <option value="French">🇫🇷 French</option>
                                 <option value="German">🇩🇪 German</option>
@@ -704,12 +729,31 @@ async function translateInChat(selectElement) {
             showToast('Translation Complete', `Translated to ${targetLanguage}`, 'success');
         } else {
             summaryDiv.innerHTML = currentHTML;
-            showToast('Translation Failed', data.message, 'error');
+            const errorMessage = data.message || 'Translation failed';
+
+            // Check if it's a rate limit error
+            if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+                showToast('⏳ Translation paused', 'Try again in a few minutes', 'warning', 5000);
+            }
+            // Check if it's a quota error
+            else if (errorMessage.includes('💳') || errorMessage.toLowerCase().includes('quota')) {
+                showToast('💳 Out of quota', 'Translation temporarily unavailable', 'warning', 5000);
+            }
+            // Generic error
+            else {
+                showToast('Translation failed', 'Please try again', 'error', 4000);
+            }
             selectElement.value = '';
         }
     } catch (error) {
         summaryDiv.innerHTML = formatSummary(originalSummary);
-        showToast('Translation Failed', 'An error occurred', 'error');
+        const errorMessage = error.message || 'An error occurred';
+
+        if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+            showToast('⏳ Slow down!', 'Wait a moment and try again', 'warning', 5000);
+        } else {
+            showToast('Translation failed', 'Network issue - try again', 'error', 4000);
+        }
         selectElement.value = '';
     }
 }
@@ -745,12 +789,31 @@ async function translateTranscriptInChat(selectElement) {
             showToast('Translation Complete', `Translated to ${targetLanguage}`, 'success');
         } else {
             transcriptDiv.innerHTML = currentHTML;
-            showToast('Translation Failed', data.message, 'error');
+            const errorMessage = data.message || 'Translation failed';
+
+            // Check if it's a rate limit error
+            if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+                showToast('⏳ Translation paused', 'Try again in a few minutes', 'warning', 5000);
+            }
+            // Check if it's a quota error
+            else if (errorMessage.includes('💳') || errorMessage.toLowerCase().includes('quota')) {
+                showToast('💳 Out of quota', 'Translation temporarily unavailable', 'warning', 5000);
+            }
+            // Generic error
+            else {
+                showToast('Translation failed', 'Please try again', 'error', 4000);
+            }
             selectElement.value = '';
         }
     } catch (error) {
         transcriptDiv.textContent = originalTranscript;
-        showToast('Translation Failed', 'An error occurred', 'error');
+        const errorMessage = error.message || 'An error occurred';
+
+        if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+            showToast('⏳ Slow down!', 'Wait a moment and try again', 'warning', 5000);
+        } else {
+            showToast('Translation failed', 'Network issue - try again', 'error', 4000);
+        }
         selectElement.value = '';
     }
 }
@@ -1064,18 +1127,30 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
         }
 
     } catch (error) {
+        removeProcessingMessage();
 
-        setTimeout(() => {
-            removeProcessingMessage();
+        // Format error message for display
+        const errorMessage = error.message || 'Unknown error';
+        const formattedError = errorMessage.replace(/\\n/g, '\n');
 
-            // Format error message with line breaks
-            const errorMessage = error.message || 'Unknown error';
-            const formattedError = errorMessage.replace(/\\n/g, '\n');
+        // Check if it's a rate limit error
+        if (formattedError.includes('⏳') || formattedError.toLowerCase().includes('rate limit')) {
+            const waitTimeMatch = formattedError.match(/(\d+)\s*minute/i);
+            const waitTime = waitTimeMatch ? waitTimeMatch[1] : 'a few';
 
-            addAIMessage(`❌ **YouTube Processing Failed**\n\n${formattedError}\n\n💡 **Tip:** Upload the video file directly for better results!`);
-        }, 1500);
-
-        showToast('YouTube Error', 'Could not process video. Check the chat for details.', 'error', 5000);
+            addAIMessage(`⏳ **Taking a breather...**\n\nWe've hit the rate limit for now, but don't worry!\n\n**Alternative options:**\n• ☕ Wait ${waitTime} minutes and paste the URL again\n• 📥 Download the video and upload the file directly instead\n• ⚡ [Upgrade your plan](https://console.groq.com/settings/billing) for unlimited access\n\nFile uploads work great and don't have this limit! 🎬`);
+            showToast('⏳ Rate limit reached', `Try again in ${waitTime} min`, 'warning', 6000);
+        }
+        // Check if it's a quota error
+        else if (formattedError.includes('💳') || formattedError.toLowerCase().includes('quota')) {
+            addAIMessage(`💳 **Out of quota for now**\n\nYour API account has used up its monthly quota.\n\n**Here's what you can do:**\n• 📥 Upload video files directly (no quota needed!)\n• 📊 [Check your usage](https://console.groq.com/settings/billing)\n• ⬆️ Upgrade your plan for more quota\n\nDirect file uploads are the way to go! 🚀`);
+            showToast('💳 Quota used up', 'Upload files instead', 'warning', 6000);
+        }
+        // Other errors
+        else {
+            addAIMessage(`❌ **YouTube URL didn't work**\n\n${formattedError}\n\n**💡 Pro Tip:** Download the video and upload the file directly!\n\n**Why this is better:**\n• ✅ More reliable\n• ✅ Works with any video\n• ✅ No YouTube restrictions\n• ✅ Better quality transcription\n\nJust drag & drop the video file! 🎯`);
+            showToast('YouTube issue', 'Try uploading the file', 'info', 5000);
+        }
     }
 
     // Reset - go back to text input
@@ -1168,11 +1243,41 @@ async function sendUserMessage() {
         if (data.success) {
             addAIMessage(data.response);
         } else {
-            addAIMessage(`❌ Sorry, I encountered an error: ${data.message}`);
+            // Format error from server
+            const errorMessage = data.message || 'Unknown error';
+
+            // Check if it's a rate limit error
+            if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+                const waitTimeMatch = errorMessage.match(/(\d+)\s*minute/i);
+                const waitTime = waitTimeMatch ? waitTimeMatch[1] : 'a few';
+
+                addAIMessage(`⏳ **Hold on a sec!**\n\nI'm getting a lot of requests right now. Let's take a ${waitTime}-minute breather!\n\n**In the meantime:**\n• You can still browse your previous notes\n• Export your summaries\n• Translate existing content\n\nI'll be ready to chat again in ${waitTime} minutes! ☕`);
+                showToast('⏳ Quick break', `Back in ${waitTime} min`, 'warning', 5000);
+            }
+            // Check if it's a quota error
+            else if (errorMessage.includes('💳') || errorMessage.toLowerCase().includes('quota')) {
+                addAIMessage(`💳 **Ran out of AI credits**\n\nMy monthly quota is all used up!\n\n**You can still:**\n• View all your processed files\n• Export and translate existing content\n• Wait for next month's quota refresh\n\nTo keep chatting, [upgrade your plan](https://console.groq.com/settings/billing) 🚀`);
+                showToast('💳 Out of credits', 'Check billing', 'error', 5000);
+            }
+            // Generic error
+            else {
+                addAIMessage(`❌ **Oops!**\n\nI couldn't process your message: ${errorMessage}\n\n**Try:**\n• Sending your message again\n• Keeping it a bit shorter\n• Checking your internet connection\n\nI'm here when you're ready! 💬`);
+                showToast('Chat error', 'Try again', 'error', 4000);
+            }
         }
     } catch (error) {
         removeProcessingMessage();
-        addAIMessage(`❌ Sorry, I couldn't process your message. ${error.message}`);
+
+        const errorMessage = error.message || 'Network error';
+
+        // Check error type
+        if (errorMessage.includes('⏳') || errorMessage.toLowerCase().includes('rate limit')) {
+            addAIMessage(`⏳ **Need a moment!**\n\nWe've hit the rate limit. Take a quick break and I'll be ready soon!\n\n☕ Try again in a few minutes.`);
+            showToast('⏳ Quick break', 'Back soon', 'warning', 5000);
+        } else {
+            addAIMessage(`❌ **Connection issue**\n\nCouldn't reach the server. This might be a network problem.\n\n**Try:**\n• Check your internet connection\n• Refresh the page\n• Try again in a moment\n\n${errorMessage}`);
+            showToast('Connection error', 'Check network', 'error', 4000);
+        }
     }
 }
 
@@ -1337,4 +1442,242 @@ if (isMobile) {
             attributeFilter: ['class']
         });
     });
+}
+
+// ============== ERROR TESTING FUNCTIONS ==============
+// These functions simulate various error scenarios for testing
+// Toggle test panel with Ctrl+Shift+T
+// ONLY AVAILABLE IN LOCAL DEVELOPMENT
+
+// Check if we're running locally
+const isLocalhost = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname === '[::1]' ||
+                    window.location.hostname.includes('local');
+
+// Toggle test panel
+const errorTestPanel = document.getElementById('errorTestPanel');
+const closeTestPanelBtn = document.getElementById('closeTestPanel');
+
+// Only enable test panel in local development
+if (!isLocalhost && errorTestPanel) {
+    // Remove the test panel from production
+    errorTestPanel.remove();
+    console.log('🔒 Error testing panel disabled (production mode)');
+} else if (isLocalhost && errorTestPanel) {
+    console.log('🧪 Error testing panel enabled (localhost). Press Ctrl+Shift+T to open.');
+}
+
+// Keyboard shortcut: Ctrl+Shift+T (only works on localhost)
+document.addEventListener('keydown', (e) => {
+    // Only enable shortcuts if running locally
+    if (!isLocalhost) return;
+
+    // Toggle with Ctrl+Shift+T
+    if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        if (errorTestPanel && errorTestPanel.style.display === 'none') {
+            errorTestPanel.style.display = 'block';
+            playSound('click');
+        } else if (errorTestPanel) {
+            errorTestPanel.style.display = 'none';
+        }
+    }
+
+    // Close with Escape key
+    if (e.key === 'Escape' && errorTestPanel && errorTestPanel.style.display === 'block') {
+        errorTestPanel.style.display = 'none';
+        playSound('click');
+    }
+});
+
+// Close button
+if (closeTestPanelBtn) {
+    closeTestPanelBtn.addEventListener('click', () => {
+        errorTestPanel.style.display = 'none';
+        playSound('click');
+    });
+}
+
+// Close when clicking on backdrop
+if (errorTestPanel) {
+    errorTestPanel.addEventListener('click', (e) => {
+        // Only close if clicking on the backdrop itself, not the panel content
+        if (e.target === errorTestPanel) {
+            errorTestPanel.style.display = 'none';
+            playSound('click');
+        }
+    });
+}
+
+// File Upload Error Tests
+function testFileRateLimit() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "⏳ AssemblyAI rate limit reached. Please wait 3 minutes and try again, or upgrade your plan at https://www.assemblyai.com/pricing for higher limits." };
+
+    addProcessingMessage('Processing...', true);
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        const waitTimeMatch = error.message.match(/(\d+)\s*minute/i);
+        const waitTime = waitTimeMatch ? waitTimeMatch[1] : 'a few';
+
+        addAIMessage(`⏳ **Whoa, slow down there!**\n\nLooks like we've used up our API requests for now. No worries though!\n\n**What's happening?**\nOur AI service has a limit on how many requests we can make.\n\n**What to do:**\n• ☕ Take a ${waitTime}-minute coffee break and try again\n• ⚡ Want instant access? [Upgrade your plan](https://console.groq.com/settings/billing)\n• 🎯 Meanwhile, you can still work with files you've already processed!\n\nThanks for your patience! 😊`);
+        showToast('⏳ Taking a quick break', `Back in ${waitTime} minutes`, 'warning', 6000);
+    }, 1500);
+}
+
+function testFileQuota() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "💳 AssemblyAI quota exceeded. Please check your account balance at https://www.assemblyai.com/app/account" };
+
+    addProcessingMessage('Processing...', true);
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`💳 **Oops! We're out of credits**\n\nYour API account has run out of quota for this month.\n\n**Here's what you can do:**\n• 📊 [Check your usage](https://console.groq.com/settings/billing)\n• ⬆️ Upgrade your plan for more quota\n• 📅 Wait until next month for quota reset\n\nDon't worry - your processed files are safe! 🔒`);
+        showToast('💳 Quota used up', 'Check your account', 'error', 6000);
+    }, 1500);
+}
+
+function testFileAuth() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "🔑 Authentication error. Please check your AssemblyAI API key configuration." };
+
+    addProcessingMessage('Processing...', true);
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`🔑 **Authentication Issue**\n\nHmm, there's a problem with the API connection.\n\n**This usually means:**\n• The API key might need to be updated\n• There might be a configuration issue\n\n**What to do:**\nPlease contact the app administrator. This isn't something you can fix on your end. 🛠️`);
+        showToast('🔑 Connection issue', 'Contact support', 'error', 6000);
+    }, 1500);
+}
+
+function testFileGeneric() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "File format not supported. Please use MP3, WAV, or M4A files." };
+
+    addProcessingMessage('Processing...', true);
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`❌ **Oops! Something went wrong**\n\n${error.message}\n\n**Quick fixes to try:**\n• 🔄 Try uploading again\n• 📁 Make sure your file is a valid format\n• ⏱️ If it's a large file, try a shorter one\n• 🌐 Check your internet connection\n\nStill having issues? Let us know! 💬`);
+        showToast('⚠️ Processing failed', 'Try again', 'error', 5000);
+    }, 1500);
+}
+
+// YouTube Error Tests
+function testYoutubeRateLimit() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "⏳ Rate limit reached. Please try again in 5 minutes." };
+
+    addUserMessage('YouTube video', { icon: '🎬', name: 'https://youtu.be/test', size: '' });
+    addProcessingMessage('Processing...', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        const waitTimeMatch = error.message.match(/(\d+)\s*minute/i);
+        const waitTime = waitTimeMatch ? waitTimeMatch[1] : 'a few';
+
+        addAIMessage(`⏳ **Taking a breather...**\n\nWe've hit the rate limit for now, but don't worry!\n\n**Alternative options:**\n• ☕ Wait ${waitTime} minutes and paste the URL again\n• 📥 Download the video and upload the file directly instead\n• ⚡ [Upgrade your plan](https://console.groq.com/settings/billing) for unlimited access\n\nFile uploads work great and don't have this limit! 🎬`);
+        showToast('⏳ Rate limit reached', `Try again in ${waitTime} min`, 'warning', 6000);
+    }, 1000);
+}
+
+function testYoutubeQuota() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "💳 API quota exceeded." };
+
+    addUserMessage('YouTube video', { icon: '🎬', name: 'https://youtu.be/test', size: '' });
+    addProcessingMessage('Processing...', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`💳 **Out of quota for now**\n\nYour API account has used up its monthly quota.\n\n**Here's what you can do:**\n• 📥 Upload video files directly (no quota needed!)\n• 📊 [Check your usage](https://console.groq.com/settings/billing)\n• ⬆️ Upgrade your plan for more quota\n\nDirect file uploads are the way to go! 🚀`);
+        showToast('💳 Quota used up', 'Upload files instead', 'warning', 6000);
+    }, 1000);
+}
+
+function testYoutubeGeneric() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    const error = { message: "⚠️ This video has transcripts disabled." };
+
+    addUserMessage('YouTube video', { icon: '🎬', name: 'https://youtu.be/test', size: '' });
+    addProcessingMessage('Processing...', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`❌ **YouTube URL didn't work**\n\n${error.message}\n\n**💡 Pro Tip:** Download the video and upload the file directly!\n\n**Why this is better:**\n• ✅ More reliable\n• ✅ Works with any video\n• ✅ No YouTube restrictions\n• ✅ Better quality transcription\n\nJust drag & drop the video file! 🎯`);
+        showToast('YouTube issue', 'Try uploading the file', 'info', 5000);
+    }, 1000);
+}
+
+// Chat Error Tests
+function testChatRateLimit() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    addUserMessage('Can you summarize the key points?');
+
+    addProcessingMessage('', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        const waitTime = '5';
+        addAIMessage(`⏳ **Hold on a sec!**\n\nI'm getting a lot of requests right now. Let's take a ${waitTime}-minute breather!\n\n**In the meantime:**\n• You can still browse your previous notes\n• Export your summaries\n• Translate existing content\n\nI'll be ready to chat again in ${waitTime} minutes! ☕`);
+        showToast('⏳ Quick break', `Back in ${waitTime} min`, 'warning', 5000);
+    }, 800);
+}
+
+function testChatQuota() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    addUserMessage('What are the action items?');
+
+    addProcessingMessage('', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`💳 **Ran out of AI credits**\n\nMy monthly quota is all used up!\n\n**You can still:**\n• View all your processed files\n• Export and translate existing content\n• Wait for next month's quota refresh\n\nTo keep chatting, [upgrade your plan](https://console.groq.com/settings/billing) 🚀`);
+        showToast('💳 Out of credits', 'Check billing', 'error', 5000);
+    }, 800);
+}
+
+function testChatGeneric() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    addUserMessage('Tell me more about this');
+
+    addProcessingMessage('', false);
+
+    setTimeout(() => {
+        removeProcessingMessage();
+
+        addAIMessage(`❌ **Oops!**\n\nI couldn't process your message: Network connection error\n\n**Try:**\n• Sending your message again\n• Keeping it a bit shorter\n• Checking your internet connection\n\nI'm here when you're ready! 💬`);
+        showToast('Chat error', 'Try again', 'error', 4000);
+    }, 800);
+}
+
+// Translation Error Tests
+function testTranslationRateLimit() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    showToast('⏳ Translation paused', 'Try again in a few minutes', 'warning', 5000);
+}
+
+function testTranslationQuota() {
+    if (!isLocalhost) return; // Only works on localhost
+    playSound('click');
+    showToast('💳 Out of quota', 'Translation temporarily unavailable', 'warning', 5000);
 }

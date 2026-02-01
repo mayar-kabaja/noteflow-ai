@@ -54,6 +54,17 @@ def index():
 def upload():
     """Handle audio file upload and processing"""
     try:
+        # ========== TEST MODE: Simulate Rate Limit Error ==========
+        # Uncomment the line below to test rate limit handling
+        # raise Exception("⏳ AssemblyAI rate limit reached. Please wait a few minutes and try again, or upgrade your plan at https://www.assemblyai.com/pricing for higher limits.")
+
+        # Uncomment to test quota error
+        # raise Exception("💳 AssemblyAI quota exceeded. Please check your account balance at https://www.assemblyai.com/app/account")
+
+        # Uncomment to test auth error
+        # raise Exception("🔑 Authentication error. Please check your AssemblyAI API key configuration.")
+        # ========== END TEST MODE ==========
+
         # Check if file is present
         if 'audio' not in request.files:
             return jsonify({'success': False, 'message': 'No file uploaded'}), 400
@@ -117,6 +128,14 @@ def get_meetings():
 def translate():
     """API endpoint to translate text"""
     try:
+        # ========== TEST MODE: Simulate Errors ==========
+        # Uncomment to test rate limit
+        # raise Exception("⏳ Rate limit reached. Please try again in 5 minutes. You can upgrade your plan at https://console.groq.com/settings/billing for higher limits.")
+
+        # Uncomment to test quota error
+        # raise Exception("💳 API quota exceeded. Please check your billing at https://console.groq.com/settings/billing")
+        # ========== END TEST MODE ==========
+
         data = request.get_json()
         text = data.get('text')
         target_language = data.get('language')
@@ -321,6 +340,11 @@ def get_videos():
 def chat_conversation():
     """Handle conversational AI messages"""
     try:
+        # ========== TEST MODE: Simulate Errors ==========
+        # Uncomment to test rate limit
+        # raise Exception("⏳ Rate limit reached. Please try again in 5 minutes.")
+        # ========== END TEST MODE ==========
+
         data = request.get_json()
         user_message = data.get('message', '').strip()
         context_type = data.get('context_type')  # 'audio', 'video', 'book'
