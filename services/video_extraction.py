@@ -40,67 +40,81 @@ def get_youtube_transcript(video_url):
             print(f"ERROR: Invalid YouTube URL: {video_url}", flush=True)
             raise ValueError("Invalid YouTube URL format")
 
-        print(f"=== YOUTUBE TRANSCRIPT REQUEST ===", flush=True)
+        print("=== YOUTUBE TRANSCRIPT REQUEST ===", flush=True)
         print(f"Video ID: {video_id}", flush=True)
         print(f"Full URL: {video_url}", flush=True)
 
-        # Try to list available transcripts first
-        try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            print(f"Available transcripts found!", flush=True)
+        # Try multiple language options (including auto-generated)
+        languages_to_try = [
+            ['en'],       # English
+            ['a.en'],     # Auto-generated English
+            ['ar'],       # Arabic
+            ['a.ar'],     # Auto-generated Arabic
+            ['es'],       # Spanish
+            ['fr'],       # French
+            ['de'],       # German
+            ['pt'],       # Portuguese
+            ['ru'],       # Russian
+            ['hi'],       # Hindi
+            ['ja'],       # Japanese
+            ['ko'],       # Korean
+        ]
 
-            # Try to get any available transcript
+        transcript_data = None
+        last_error = None
+
+        for languages in languages_to_try:
             try:
-                # Try manually created transcripts first
-                transcript = transcript_list.find_manually_created_transcript(['en', 'en-US', 'en-GB'])
-                print(f"Found manually created English transcript", flush=True)
-            except:
-                try:
-                    # Try generated transcripts
-                    transcript = transcript_list.find_generated_transcript(['en', 'en-US', 'en-GB'])
-                    print(f"Found auto-generated English transcript", flush=True)
-                except:
-                    # Get any available transcript
-                    transcript = next(iter(transcript_list))
-                    print(f"Using available transcript: {transcript.language}", flush=True)
+                print(f"Trying languages: {languages}", flush=True)
+                # Use the correct API method
+                api_result = YouTubeTranscriptApi().fetch(video_id, languages=languages)
+                # Extract segments from the result
+                transcript_data = api_result.segments if hasattr(api_result, 'segments') else api_result
+                print(f"Successfully got transcript with {len(transcript_data)} segments", flush=True)
+                break
+            except TranscriptsDisabled as e:
+                print(f"ERROR: Transcripts disabled for video {video_id}", flush=True)
+                return {
+                    'success': False,
+                    'error': "⚠️ This video has transcripts disabled.\n\n"
+                             "Please try:\n"
+                             "1. A different video with captions enabled\n"
+                             "2. Uploading the video file directly"
+                }
+            except NoTranscriptFound as e:
+                last_error = e
+                print(f"No transcript found for {languages}", flush=True)
+                continue
+            except VideoUnavailable as e:
+                print(f"ERROR: Video {video_id} is unavailable", flush=True)
+                return {
+                    'success': False,
+                    'error': "⚠️ This video is unavailable.\n\n"
+                             "It might be:\n"
+                             "• Private or deleted\n"
+                             "• Region-restricted\n"
+                             "• Age-restricted\n\n"
+                             "Try a different public video."
+                }
+            except Exception as e:
+                last_error = e
+                print(f"Error with {languages}: {type(e).__name__}: {str(e)}", flush=True)
+                continue
 
-            # Fetch the transcript data
-            transcript_data = transcript.fetch()
-            print(f"Transcript fetched successfully: {len(transcript_data)} segments", flush=True)
-
-        except TranscriptsDisabled:
-            print(f"ERROR: Transcripts are disabled for video {video_id}", flush=True)
-            return {
-                'success': False,
-                'error': "⚠️ This video has transcripts disabled. Please try:\n1. A different video with captions\n2. Uploading the video file directly\n3. A video with auto-generated captions enabled"
-            }
-        except NoTranscriptFound:
-            print(f"ERROR: No transcripts found for video {video_id}", flush=True)
-            return {
-                'success': False,
-                'error': "⚠️ No captions/transcripts available for this video. Please try:\n1. A video with captions enabled\n2. Uploading the video file directly"
-            }
-        except VideoUnavailable:
-            print(f"ERROR: Video {video_id} is unavailable", flush=True)
-            return {
-                'success': False,
-                'error': "⚠️ This video is unavailable. It might be:\n1. Private or deleted\n2. Region-restricted\n3. Age-restricted\nTry a different public video."
-            }
-        except Exception as e:
-            print(f"ERROR listing transcripts: {type(e).__name__}: {str(e)}", flush=True)
-            return {
-                'success': False,
-                'error': f"Failed to access YouTube video: {str(e)}"
-            }
-
-        # If we got here but no transcript_data, something went wrong
+        # If no transcript found after all attempts
         if not transcript_data:
+            error_msg = str(last_error) if last_error else "Unknown error"
+            print(f"ERROR: No transcripts available. Last error: {error_msg}", flush=True)
             return {
                 'success': False,
-                'error': "No transcript data retrieved. The video may not have captions enabled."
+                'error': "⚠️ No captions/transcripts available for this video.\n\n"
+                         "Please try:\n"
+                         "1. A video with auto-generated captions\n"
+                         "2. Uploading the video file directly\n\n"
+                         "💡 Most YouTube videos have auto-captions!"
             }
 
-        print(f"Transcript fetched successfully, {len(transcript_data)} segments", flush=True)
+        print(f"Processing {len(transcript_data)} transcript segments", flush=True)
 
         # Combine all text - handle both dict and object formats
         transcript_text = " ".join([
