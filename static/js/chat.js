@@ -1176,8 +1176,8 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
         }
         // Other errors
         else {
-            addAIMessage(`❌ **YouTube URL didn't work**\n\n${formattedError}\n\n**💡 Pro Tip:** Download the video and upload the file directly!\n\n**Why this is better:**\n• ✅ More reliable\n• ✅ Works with any video\n• ✅ No YouTube restrictions\n• ✅ Better quality transcription\n\nJust drag & drop the video file! 🎯`);
-            showToast('YouTube issue', 'Try uploading the file', 'info', 5000);
+            addAIMessage(`${formattedError}`);
+            showToast('YouTube Error', 'Unable to get transcript', 'error', 5000);
         }
     }
 
@@ -1699,8 +1699,8 @@ function testYoutubeGeneric() {
     setTimeout(() => {
         removeProcessingMessage();
 
-        addAIMessage(`❌ **YouTube URL didn't work**\n\n${error.message}\n\n**💡 Pro Tip:** Download the video and upload the file directly!\n\n**Why this is better:**\n• ✅ More reliable\n• ✅ Works with any video\n• ✅ No YouTube restrictions\n• ✅ Better quality transcription\n\nJust drag & drop the video file! 🎯`);
-        showToast('YouTube issue', 'Try uploading the file', 'info', 5000);
+        addAIMessage(`${error.message}`);
+        showToast('YouTube Error', 'Unable to get transcript', 'error', 5000);
     }, 1000);
 }
 

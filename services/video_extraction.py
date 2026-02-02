@@ -98,6 +98,7 @@ def get_youtube_transcript(video_url):
     Get transcript from YouTube video URL using hybrid approach:
     1. Try official YouTube Data API (works in production)
     2. Fall back to transcript scraping API (works locally)
+    3. Support translation from available languages to English
     """
     import time
 
@@ -159,10 +160,7 @@ def get_youtube_transcript(video_url):
                 except TranscriptsDisabled:
                     return {
                         'success': False,
-                        'error': "⚠️ This video has transcripts disabled.\n\n"
-                                 "Please try:\n"
-                                 "1. A different video with captions enabled\n"
-                                 "2. Uploading the video file directly"
+                        'error': "⚠️ This video has captions/transcripts disabled."
                     }
                 except NoTranscriptFound as e:
                     last_error = e
@@ -171,11 +169,7 @@ def get_youtube_transcript(video_url):
                     return {
                         'success': False,
                         'error': "⚠️ This video is unavailable.\n\n"
-                                 "It might be:\n"
-                                 "• Private or deleted\n"
-                                 "• Region-restricted\n"
-                                 "• Age-restricted\n\n"
-                                 "Try a different public video."
+                                 "It may be private, deleted, region-restricted, or age-restricted."
                     }
                 except Exception as e:
                     last_error = e
@@ -189,33 +183,51 @@ def get_youtube_transcript(video_url):
                 time.sleep(2 ** retry)
 
         if not transcript_data:
-            # Try to list available transcripts to provide better error message
+            # Try to list available transcripts and translate to English if needed
             try:
                 transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
                 available = []
+                translatable_transcript = None
+
                 for transcript in transcript_list:
                     available.append(f"• {transcript.language} ({'auto' if transcript.is_generated else 'manual'})")
 
-                if available:
+                    # Find a translatable transcript we can convert to English
+                    if translatable_transcript is None and transcript.is_translatable:
+                        translatable_transcript = transcript
+
+                # If we found a translatable transcript, translate it to English
+                if translatable_transcript:
+                    print(f"Translating {translatable_transcript.language} transcript to English...")
+                    try:
+                        english_transcript = translatable_transcript.translate('en')
+                        transcript_data = english_transcript.fetch()
+                        print(f"Successfully translated to English!")
+                    except Exception as translate_error:
+                        print(f"Translation failed: {translate_error}")
+                        # Continue to error handling below
+
+                # If translation failed or no translatable transcript found
+                if not transcript_data and available:
                     return {
                         'success': False,
-                        'error': f"⚠️ Could not find supported language transcript.\n\n"
-                                 f"Available transcripts:\n" + "\n".join(available[:5]) +
-                                 f"\n\n💡 Try uploading the video file directly for better results!"
+                        'error': f"⚠️ Could not access transcripts for this video.\n\n"
+                                 f"Available captions:\n" + "\n".join(available[:5]) +
+                                 f"\n\nYouTube is blocking automated access to this video's captions."
                     }
-            except:
+            except Exception as list_error:
+                print(f"Error listing transcripts: {list_error}")
                 pass
 
-            return {
-                'success': False,
-                'error': "⚠️ No captions/transcripts available for this video.\n\n"
-                         "This could be because:\n"
-                         "• The video has no captions\n"
-                         "• YouTube is blocking automated access\n"
-                         "• The video is region-restricted\n\n"
-                         "📹 **Solution:** Download the video and upload it directly!\n"
-                         "This works 100% of the time and gives better quality."
-            }
+            if not transcript_data:
+                return {
+                    'success': False,
+                    'error': "⚠️ Unable to access captions for this video.\n\n"
+                             "This could be because:\n"
+                             "• YouTube is blocking automated access\n"
+                             "• The video has no captions\n"
+                             "• The video is private or region-restricted"
+                }
 
         # Combine all text - handle both dict and object formats
         transcript_text = " ".join([
