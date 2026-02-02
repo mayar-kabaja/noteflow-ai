@@ -3416,6 +3416,30 @@ footer {
     .export-icon-btn:active {
         transform: scale(0.94);
     }
+
+    /* Disable hover tooltips and effects on touch devices */
+    .btn-google:hover::after,
+    .btn-github:hover::after,
+    .btn-apple:hover::after,
+    .btn-facebook:hover::after,
+    button[title]:hover::before,
+    button[title]:hover::after,
+    .btn[title]:hover::before,
+    .btn[title]:hover::after,
+    a[title]:hover::before,
+    a[title]:hover::after {
+        display: none !important;
+        content: none !important;
+        opacity: 0 !important;
+    }
+
+    /* Disable hover transform effects on touch devices */
+    button:hover,
+    .btn:hover,
+    .conversation-action-btn:hover,
+    .quick-action-btn:hover {
+        transform: none !important;
+    }
 }
 
 /* Safe area insets for iOS notch/home indicator */
@@ -4090,6 +4114,8 @@ a[title]:hover::after {
     box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 10px 25px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-color);
     animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden; /* Clip content to rounded corners */
+    margin: 40px 20px; /* Add space for shadow to render */
 }
 
 @keyframes modalSlideIn {
@@ -4823,7 +4849,7 @@ a[title]:hover::after {
 .auth-modal-content {
     position: relative;
     max-height: 90vh; /* Don't exceed 90% of viewport height */
-    overflow-y: auto; /* Enable vertical scrolling */
+    overflow: hidden; /* Clip content to rounded corners */
     display: flex;
     flex-direction: column;
 }
@@ -4876,7 +4902,7 @@ a[title]:hover::after {
 .auth-modal-content {
     max-width: 420px;
     max-height: none;
-    overflow-y: visible;
+    overflow: hidden; /* Clip content to rounded corners */
 }
 
 .auth-modal-body {
@@ -4982,6 +5008,7 @@ a[title]:hover::after {
     max-width: 440px;
     margin: auto;
     border: 1px solid var(--border-color);
+    overflow: hidden; /* Clip content to rounded corners */
 }
 
 .auth-modal-header {
@@ -5029,6 +5056,11 @@ a[title]:hover::after {
     width: 100%;
     height: 100%;
     z-index: 1000;
+}
+
+.auth-modal[style*="display: flex"],
+.auth-modal[style*="display:flex"] {
+    display: flex !important;
     align-items: center;
     justify-content: center;
 }
@@ -5073,7 +5105,7 @@ a[title]:hover::after {
 .auth-modal-content {
     position: relative;
     z-index: 1001;
-    overflow: hidden; /* Ensure content stays within rounded corners */
+    overflow: hidden; /* Clip content to rounded corners */
 }
 
 .auth-modal-body {
@@ -5127,6 +5159,223 @@ a[title]:hover::after {
     margin-bottom: 16px;
     justify-content: center;
     flex-wrap: nowrap;
+}
+
+/* ============== MOBILE AUTH MODAL OPTIMIZATION ============== */
+
+/* Compact modal for mobile devices */
+@media (max-width: 640px) {
+    .auth-modal {
+        padding: 12px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-modal-content {
+        width: 95%;
+        max-width: 100%;
+        border-radius: 12px;
+        overflow: hidden !important; /* Clip content to rounded corners on mobile */
+        margin: 20px 10px; /* Space for shadow */
+    }
+
+    .auth-modal-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .auth-modal-header h3 {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .auth-modal-close {
+        width: 26px;
+        height: 26px;
+        font-size: 22px;
+    }
+
+    .auth-modal-body {
+        padding: 16px;
+    }
+
+    .auth-modal-footer {
+        padding: 0 16px 16px;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .form-group label {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .form-group input {
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .btn-modal-primary {
+        padding: 9px 16px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .oauth-divider {
+        margin: 12px 0 10px;
+    }
+
+    .oauth-divider span {
+        font-size: 11px;
+        padding: 0 10px;
+    }
+
+    .oauth-buttons-row .btn-oauth {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        padding: 10px;
+    }
+
+    .oauth-buttons-row .btn-oauth svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .auth-modal-switch {
+        font-size: 11px;
+        margin-top: 10px;
+    }
+
+    .auth-modal-switch a {
+        font-size: 11px;
+    }
+
+    .auth-modal-message {
+        font-size: 13px;
+    }
+
+    .auth-modal-submessage {
+        font-size: 11px;
+    }
+
+    .btn-modal-secondary,
+    .btn-modal-danger {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+    .error-message {
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .auth-modal {
+        padding: 8px;
+    }
+
+    .auth-modal-content {
+        width: 98%;
+        border-radius: 10px;
+        overflow: hidden !important; /* Clip content to rounded corners on mobile */
+        margin: 15px 5px; /* Space for shadow */
+    }
+
+    .auth-modal-header {
+        padding: 12px 14px;
+    }
+
+    .auth-modal-header h3 {
+        font-size: 14px;
+    }
+
+    .auth-modal-close {
+        width: 24px;
+        height: 24px;
+        font-size: 20px;
+    }
+
+    .auth-modal-body {
+        padding: 12px 14px;
+    }
+
+    .auth-modal-footer {
+        padding: 0 14px 14px;
+    }
+
+    .form-group {
+        margin-bottom: 8px;
+    }
+
+    .form-group label {
+        font-size: 10px;
+        margin-bottom: 3px;
+    }
+
+    .form-group input {
+        padding: 7px 9px;
+        font-size: 12px;
+    }
+
+    .btn-modal-primary {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+    .oauth-divider {
+        margin: 10px 0 8px;
+    }
+
+    .oauth-divider span {
+        font-size: 10px;
+        padding: 0 8px;
+    }
+
+    .oauth-buttons-row {
+        margin-bottom: 12px;
+        gap: 6px;
+    }
+
+    .oauth-buttons-row .btn-oauth {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        padding: 8px;
+    }
+
+    .oauth-buttons-row .btn-oauth svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .auth-modal-switch {
+        font-size: 10px;
+        margin-top: 8px;
+    }
+
+    .auth-modal-switch a {
+        font-size: 10px;
+    }
+
+    .auth-modal-message {
+        font-size: 12px;
+    }
+
+    .auth-modal-submessage {
+        font-size: 10px;
+    }
+
+    .btn-modal-secondary,
+    .btn-modal-danger {
+        padding: 7px 12px;
+        font-size: 11px;
+    }
 }
 
 /* ============== CHAT HISTORY SIDEBAR ============== */
