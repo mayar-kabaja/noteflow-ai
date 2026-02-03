@@ -75,15 +75,10 @@ def allowed_video_file(filename):
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_VIDEO_EXTENSIONS']
 
 
-def _is_production():
-    """True when running on Render or FLASK_ENV=production (hide YouTube URL there)."""
-    return bool(os.getenv('RENDER')) or os.getenv('FLASK_ENV') == 'production'
-
-
 @app.route('/')
 def index():
     """Homepage with upload form"""
-    return render_template('index.html', show_youtube_url=not _is_production())
+    return render_template('index.html')
 
 
 @app.route('/upload', methods=['POST'])
@@ -331,18 +326,12 @@ def process_video():
                 # cleanup_file(video_filepath)
 
         else:
-            # YouTube URL processing (disabled in production; use video file upload there)
+            # YouTube URL processing
             data = request.get_json()
             video_url = data.get('video_url', '').strip()
 
             if not video_url:
                 return jsonify({'success': False, 'message': 'No video URL provided'}), 400
-
-            if _is_production():
-                return jsonify({
-                    'success': False,
-                    'message': '⚠️ YouTube URL is disabled on this server. Use Video file upload instead — download the video on your device and upload it here.'
-                }), 400
 
             result = get_youtube_transcript(video_url)
             if not result['success']:
