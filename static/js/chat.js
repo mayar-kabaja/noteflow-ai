@@ -1096,7 +1096,9 @@ inlineDiscardRecordingBtn.addEventListener('click', () => {
 // ============== QUICK ACTIONS ==============
 
 // NOTE: Upload button handler is now at line ~726 (moved to conversational AI section)
+// YouTube URL UI is hidden in production (show_youtube_url=false); only attach if elements exist
 
+if (youtubeBtn && chatUrlInput && youtubeUrl) {
 youtubeBtn.addEventListener('click', () => {
     if (!requireLogin('add YouTube videos')) return;
     playSound('click'); // Play click sound
@@ -1105,13 +1107,15 @@ youtubeBtn.addEventListener('click', () => {
     youtubeUrl.focus();
 });
 
-document.getElementById('cancelUrl').addEventListener('click', () => {
+const cancelUrlBtn = document.getElementById('cancelUrl');
+if (cancelUrlBtn) cancelUrlBtn.addEventListener('click', () => {
     chatUrlInput.style.display = 'none';
     chatTextInput.style.display = 'flex';
     youtubeUrl.value = '';
 });
 
-document.getElementById('submitUrl').addEventListener('click', async () => {
+const submitUrlBtn = document.getElementById('submitUrl');
+if (submitUrlBtn) submitUrlBtn.addEventListener('click', async () => {
     const url = youtubeUrl.value.trim();
 
     if (!url) {
@@ -1190,9 +1194,11 @@ document.getElementById('submitUrl').addEventListener('click', async () => {
 // Allow Enter key to submit URL
 youtubeUrl.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        document.getElementById('submitUrl').click();
+        const btn = document.getElementById('submitUrl');
+        if (btn) btn.click();
     }
 });
+}
 
 // ============== CONVERSATIONAL AI ==============
 
@@ -1414,12 +1420,15 @@ chatFileInput.addEventListener('change', function(e) {
     }
 });
 
-// Update cancel URL button
-document.getElementById('cancelUrl').addEventListener('click', () => {
-    chatUrlInput.style.display = 'none';
-    chatTextInput.style.display = 'flex';
-    youtubeUrl.value = '';
-});
+// Update cancel URL button (only if YouTube UI is present)
+const cancelUrlBtn2 = document.getElementById('cancelUrl');
+if (cancelUrlBtn2 && chatUrlInput && youtubeUrl) {
+    cancelUrlBtn2.addEventListener('click', () => {
+        chatUrlInput.style.display = 'none';
+        chatTextInput.style.display = 'flex';
+        youtubeUrl.value = '';
+    });
+}
 
 // Note: YouTube button handler is defined earlier with auth check
 // Note: YouTube URL submission is handled earlier in the file

@@ -423,12 +423,11 @@ def get_youtube_transcript(video_url):
                     }
 
             if not transcript_data:
+                print(f"YouTube transcript: all methods failed for video_id={video_id}")
                 err = "⚠️ Unable to access captions for this video.\n\n"
-                err += "This could be because:\n"
-                err += "• YouTube is blocking automated access (common on cloud servers)\n"
-                err += "• The video has no captions\n"
-                err += "• The video is private or region-restricted\n\n"
-                err += "Try uploading the video file instead, or try again later."
+                err += "Reliable workaround: Use Video file upload instead of the YouTube URL — download the video on your device, then upload it here. That always works because we transcribe your file directly.\n\n"
+                err += "Why URL fails here: YouTube often blocks automated access from cloud servers. It works locally but not on production.\n\n"
+                err += "Other options: Export fresh cookies from youtube.com and set YOUTUBE_COOKIES_TXT in your deployment; or try again later."
                 if available_captions_note:
                     err += available_captions_note
                 return {'success': False, 'error': err}

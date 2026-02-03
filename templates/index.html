@@ -128,9 +128,11 @@
                         <button type="button" class="input-icon-btn" id="uploadFileBtn" title="Upload File">
                             📁
                         </button>
+                        {% if show_youtube_url %}
                         <button type="button" class="input-icon-btn" id="youtubeBtn" title="YouTube URL">
                             🎬
                         </button>
+                        {% endif %}
                     </div>
 
                     <input type="text" id="userMessageInput" placeholder="Type your message..." class="text-input-field" autocomplete="off">
@@ -146,12 +148,14 @@
                    accept="audio/*,video/*,.pdf,.epub,.txt,.docx,.doc,.mp3,.wav,.m4a,.ogg,.flac,.webm,.opus,.mp4,.mov,.avi,.mkv"
                    class="file-input" style="display: none;">
 
-            <!-- URL Input for YouTube -->
+            <!-- URL Input for YouTube (hidden in production) -->
+            {% if show_youtube_url %}
             <div class="chat-url-input" id="chatUrlInput" style="display: none;">
                 <input type="text" id="youtubeUrl" placeholder="🔗 Paste YouTube URL here..." class="url-input-field">
                 <button type="button" class="url-submit-btn" id="submitUrl">Send</button>
                 <button type="button" class="url-cancel-btn" id="cancelUrl">✕</button>
             </div>
+            {% endif %}
         </form>
     </div>
 </div>
