@@ -165,12 +165,11 @@ def _ytdlp_cookiefile_opts():
     path = os.getenv('YOUTUBE_COOKIES_FILE', '').strip()
     if path and os.path.isfile(path):
         return {'cookiefile': path}
-    # Fallback: write YOUTUBE_COOKIES_TXT to a file at runtime (preserves newlines; build step may not)
+    # Fallback: write YOUTUBE_COOKIES_TXT to a file at runtime (use /tmp so it works on read-only Render filesystem)
     txt = os.getenv('YOUTUBE_COOKIES_TXT', '').strip()
     if txt:
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        cookie_path = os.path.join(project_root, 'youtube_cookies.txt')
         try:
+            cookie_path = os.path.join(tempfile.gettempdir(), 'noteflow_youtube_cookies.txt')
             with open(cookie_path, 'w', encoding='utf-8') as f:
                 f.write(txt)
             if os.path.isfile(cookie_path):
