@@ -24,6 +24,7 @@ const inlineAudioPreview = document.getElementById('inlineAudioPreview');
 const inlineAudioPlayback = document.getElementById('inlineAudioPlayback');
 const inlineTimerDisplay = document.getElementById('inlineTimerDisplay');
 const inlineRecordingTimer = document.getElementById('inlineRecordingTimer');
+const inlineRecordingLabel = document.getElementById('inlineRecordingLabel');
 
 // Recording variables
 let mediaRecorder;
@@ -301,15 +302,27 @@ function setProgressError() {
 function addProcessingMessage(customMessage = 'Processing...', showProgress = true) {
     playSound('processing');
 
-    const loaderDiv = document.createElement('div');
-    loaderDiv.className = 'standalone-loader';
-    loaderDiv.id = 'processingMessage';
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai-message';
+    messageDiv.id = 'processingMessage';
 
-    loaderDiv.appendChild(createProgressBar(showProgress));
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'message-avatar';
+    avatarDiv.textContent = '🤖';
 
-    chatMessages.appendChild(loaderDiv);
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'message-content';
+    const loaderInner = document.createElement('div');
+    loaderInner.className = 'standalone-loader';
+    loaderInner.appendChild(createProgressBar(showProgress));
+    contentWrapper.appendChild(loaderInner);
+
+    messageDiv.appendChild(avatarDiv);
+    messageDiv.appendChild(contentWrapper);
+
+    chatMessages.appendChild(messageDiv);
     scrollToBottom();
-    return loaderDiv;
+    return messageDiv;
 }
 
 function updateProcessingMessage(newMessage, percentage) {
@@ -966,8 +979,10 @@ function copyTranscriptResult(button) {
 recordAudioBtn.addEventListener('click', () => {
     if (!requireLogin('record audio')) return;
     playSound('click'); // Play click sound
-    inlineRecording.style.display = 'block';
+    inlineRecording.style.display = 'flex';
     chatTextInput.style.display = 'none';
+    if (inlineRecordingLabel) inlineRecordingLabel.style.display = '';
+    if (inlineRecordingTimer) inlineRecordingTimer.style.display = 'none';
 });
 
 closeInlineRecording.addEventListener('click', () => {
@@ -983,6 +998,8 @@ closeInlineRecording.addEventListener('click', () => {
     inlineStopRecordBtn.style.display = 'none';
     inlineAudioPreview.style.display = 'none';
     inlineTimerDisplay.textContent = '00:00';
+    if (inlineRecordingLabel) inlineRecordingLabel.style.display = '';
+    if (inlineRecordingTimer) inlineRecordingTimer.style.display = 'none';
 });
 
 inlineStartRecordBtn.addEventListener('click', async () => {
@@ -1011,7 +1028,7 @@ inlineStartRecordBtn.addEventListener('click', async () => {
             const audioUrl = URL.createObjectURL(recordedBlob);
             inlineAudioPlayback.src = audioUrl;
 
-            inlineAudioPreview.style.display = 'block';
+            inlineAudioPreview.style.display = 'flex';
             stream.getTracks().forEach(track => track.stop());
         };
 
@@ -1019,8 +1036,11 @@ inlineStartRecordBtn.addEventListener('click', async () => {
 
         inlineStartRecordBtn.style.display = 'none';
         inlineStopRecordBtn.style.display = 'flex';
+        if (inlineRecordingLabel) inlineRecordingLabel.style.display = 'none';
+        if (inlineRecordingTimer) inlineRecordingTimer.style.display = 'flex';
 
         recordingStartTime = Date.now();
+        inlineTimerDisplay.textContent = '00:00';
         recordingInterval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
             const minutes = Math.floor(elapsed / 60);
@@ -1079,6 +1099,8 @@ inlineUseRecordingBtn.addEventListener('click', () => {
     inlineStartRecordBtn.style.display = 'flex';
     inlineStopRecordBtn.style.display = 'none';
     inlineTimerDisplay.textContent = '00:00';
+    if (inlineRecordingLabel) inlineRecordingLabel.style.display = '';
+    if (inlineRecordingTimer) inlineRecordingTimer.style.display = 'none';
 });
 
 inlineDiscardRecordingBtn.addEventListener('click', () => {
@@ -1090,6 +1112,8 @@ inlineDiscardRecordingBtn.addEventListener('click', () => {
     inlineStartRecordBtn.style.display = 'flex';
     inlineStopRecordBtn.style.display = 'none';
     inlineTimerDisplay.textContent = '00:00';
+    if (inlineRecordingLabel) inlineRecordingLabel.style.display = '';
+    if (inlineRecordingTimer) inlineRecordingTimer.style.display = 'none';
     showToast('Recording Discarded', 'You can record a new one', 'info');
 });
 

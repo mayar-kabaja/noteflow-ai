@@ -2,15 +2,14 @@
 """
 Audio transcription service using AssemblyAI API
 """
+import time
 import assemblyai as aai
 from config import Config
-import httpx
-import re
 
 aai.settings.api_key = Config.ASSEMBLYAI_API_KEY
 
-# Create custom HTTP client with longer timeout
-http_client = httpx.Client(timeout=300.0)  # 5 minutes timeout
+# Longer timeout for upload + polling (SDK default 30s; large files need more)
+aai.settings.http_timeout = 300.0  # 5 minutes
 
 
 def format_transcription_error(error):
@@ -37,8 +36,8 @@ def format_transcription_error(error):
     if 'auth' in error_str.lower() or '401' in error_str or '403' in error_str or 'api key' in error_str.lower():
         return "🔑 Authentication error. Please check your AssemblyAI API key configuration."
 
-    # Check for timeout errors
-    if 'timeout' in error_str.lower():
+    # Check for timeout / write operation timed out (upload or polling)
+    if 'timeout' in error_str.lower() or 'write operation' in error_str.lower():
         return "⏱️ Transcription request timed out. Please try again with a shorter audio file."
 
     # Check for file errors
@@ -49,38 +48,48 @@ def format_transcription_error(error):
     return f"❌ Transcription error: {error_str[:200]}"
 
 
-def transcribe_audio(audio_file_path):
+def transcribe_audio(audio_file_path, max_retries=3):
     """
     Transcribe audio file using AssemblyAI API
-    Supports automatic language detection for 100+ languages
+    Supports automatic language detection for 100+ languages.
+    Retries on timeout/upload errors (e.g. write operation timed out).
 
     Args:
         audio_file_path (str): Path to the audio file
+        max_retries (int): Number of attempts on timeout/transient errors
 
     Returns:
         str: Transcribed text
     """
-    try:
-        # Enable automatic language detection
-        config = aai.TranscriptionConfig(
-            language_detection=True
-        )
+    config = aai.TranscriptionConfig(language_detection=True)
+    last_error = None
 
-        transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(audio_file_path, config=config)
+    for attempt in range(max_retries):
+        try:
+            transcriber = aai.Transcriber()
+            transcript = transcriber.transcribe(audio_file_path, config=config)
 
-        if transcript.status == aai.TranscriptStatus.error:
-            # Format the error message
-            friendly_error = format_transcription_error(Exception(transcript.error))
+            if transcript.status == aai.TranscriptStatus.error:
+                friendly_error = format_transcription_error(Exception(transcript.error))
+                raise Exception(friendly_error)
+
+            return transcript.text
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            # Retry on timeout / write operation timed out (transient)
+            is_timeout = 'timeout' in err_str or 'write operation' in err_str
+            if is_timeout and attempt + 1 < max_retries:
+                time.sleep(5 * (attempt + 1))  # 5s, 10s backoff
+                continue
+            # If it's already a formatted error, re-raise it
+            if '⏳' in str(e) or '💳' in str(e) or '🔑' in str(e) or '⏱️' in str(e) or '📁' in str(e):
+                raise
+            friendly_error = format_transcription_error(e)
             raise Exception(friendly_error)
 
-        return transcript.text
-    except Exception as e:
-        # If it's already a formatted error, re-raise it
-        if '⏳' in str(e) or '💳' in str(e) or '🔑' in str(e) or '⏱️' in str(e) or '📁' in str(e):
-            raise
-        # Otherwise, format the error
-        friendly_error = format_transcription_error(e)
+    if last_error is not None:
+        friendly_error = format_transcription_error(last_error)
         raise Exception(friendly_error)
 
 

@@ -27,7 +27,7 @@
         <div class="chat-header-info">
             {% if current_user.is_authenticated %}
                 <button class="history-toggle-btn" onclick="toggleHistorySidebar()" title="Chat History">
-                    📋
+                    💬
                 </button>
             {% endif %}
             <div class="ai-avatar">🤖</div>
@@ -58,14 +58,14 @@
             <div class="message-avatar">🤖</div>
             <div class="message-content">
                 <div class="message-bubble">
-                    <p>👋 Hi! I'm your NoteFlow AI assistant.</p>
-                    <p>I can help you transform content into structured notes:</p>
+                    <p class="welcome-hook">Turn any audio, document, or video into clear notes—instantly.</p>
+                    <p>How it works:</p>
                     <ul>
-                        <li>🎤 <strong>Audio recordings</strong> - Record or upload MP3, WAV, M4A</li>
-                        <li>📚 <strong>Books & Documents</strong> - Upload PDF, EPUB, TXT, DOCX</li>
-                        <li>🎬 <strong>Videos</strong> - Upload files or paste YouTube URLs</li>
+                        <li>🎤 <strong>Voice</strong> — Record or upload (MP3, WAV, M4A)</li>
+                        <li>📚 <strong>Books & docs</strong> — PDF, EPUB, TXT, DOCX</li>
+                        <li>🎬 <strong>Videos</strong> — Upload a file{% if show_youtube_url %} or paste a YouTube link{% endif %}</li>
                     </ul>
-                    <p><strong>Just drop a file below or click to browse!</strong> ✨</p>
+                    <p><strong>Drop a file below or click to start →</strong></p>
                 </div>
             </div>
         </div>
@@ -74,45 +74,29 @@
     <!-- Chat Input Area -->
     <div class="chat-input-area">
         <form id="chatForm" enctype="multipart/form-data" onsubmit="return false;">
-            <!-- Recording Interface (Inline) -->
+            <!-- Recording Interface (same row as text input) -->
             <div class="inline-recording" id="inlineRecording" style="display: none;">
                 <div class="recording-content">
-                    <div class="recording-header">
-                        <span class="recording-icon">🎙️</span>
-                        <span class="recording-title">Recording...</span>
-                        <button type="button" class="close-recording" id="closeInlineRecording">✕</button>
+                    <span class="recording-icon">🎙️</span>
+                    <span class="recording-title" id="inlineRecordingLabel">Recording...</span>
+                    <div class="recording-timer" id="inlineRecordingTimer">
+                        <span class="timer-display" id="inlineTimerDisplay">00:00</span>
                     </div>
-
-                    <div class="recording-body">
-                        <div class="recording-timer" id="inlineRecordingTimer">
-                            <span class="timer-display" id="inlineTimerDisplay">00:00</span>
-                        </div>
-
-                        <div class="recording-controls">
-                            <button type="button" class="rec-btn rec-start" id="inlineStartRecordBtn">
-                                <span>⏺</span>
-                                <span>Start</span>
-                            </button>
-                            <button type="button" class="rec-btn rec-stop" id="inlineStopRecordBtn" style="display: none;">
-                                <span>⏹</span>
-                                <span>Stop</span>
-                            </button>
-                        </div>
-
-                        <div class="recording-preview" id="inlineAudioPreview" style="display: none;">
-                            <audio controls id="inlineAudioPlayback" class="audio-playback"></audio>
-                            <div class="preview-actions">
-                                <button type="button" class="rec-btn rec-use" id="inlineUseRecordingBtn">
-                                    <span>✓</span>
-                                    <span>Use Recording</span>
-                                </button>
-                                <button type="button" class="rec-btn rec-discard" id="inlineDiscardRecordingBtn">
-                                    <span>🗑️</span>
-                                    <span>Discard</span>
-                                </button>
-                            </div>
-                        </div>
+                    <div class="recording-controls">
+                        <button type="button" class="rec-btn-inline rec-start" id="inlineStartRecordBtn">
+                            <span>⏺</span> Start
+                        </button>
+                        <button type="button" class="rec-btn-inline rec-stop" id="inlineStopRecordBtn" style="display: none;">
+                            <span>⏹</span> Stop
+                        </button>
                     </div>
+                    <div class="recording-spacer"></div>
+                    <button type="button" class="close-recording" id="closeInlineRecording" title="Cancel">✕</button>
+                </div>
+                <div class="recording-preview" id="inlineAudioPreview" style="display: none;">
+                    <audio controls id="inlineAudioPlayback" class="audio-playback-inline"></audio>
+                    <button type="button" class="rec-btn-inline rec-use" id="inlineUseRecordingBtn"><span>✓</span> Use</button>
+                    <button type="button" class="rec-btn-inline rec-discard" id="inlineDiscardRecordingBtn"><span>🗑️</span> Discard</button>
                 </div>
             </div>
 
@@ -929,14 +913,14 @@ function startNewConversation() {
         <div class="message-avatar">🤖</div>
         <div class="message-content">
             <div class="message-bubble">
-                <p>👋 Hi! I'm your NoteFlow AI assistant.</p>
-                <p>I can help you transform content into structured notes:</p>
+                <p class="welcome-hook">Turn any audio, document, or video into clear notes—instantly.</p>
+                <p>How it works:</p>
                 <ul>
-                    <li>🎤 <strong>Audio recordings</strong> - Record or upload MP3, WAV, M4A</li>
-                    <li>📚 <strong>Books & Documents</strong> - Upload PDF, EPUB, TXT, DOCX</li>
-                    <li>🎬 <strong>Videos</strong> - Upload files or paste YouTube URLs</li>
+                    <li>🎤 <strong>Voice</strong> — Record or upload (MP3, WAV, M4A)</li>
+                    <li>📚 <strong>Books & docs</strong> — PDF, EPUB, TXT, DOCX</li>
+                    <li>🎬 <strong>Videos</strong> — Upload a file{% if show_youtube_url %} or paste a YouTube link{% endif %}</li>
                 </ul>
-                <p><strong>Just drop a file below or click to browse!</strong> ✨</p>
+                <p><strong>Drop a file below or click to start →</strong></p>
             </div>
         </div>
     `;

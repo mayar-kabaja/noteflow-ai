@@ -50,6 +50,23 @@ def format_api_error(error):
     return f"❌ An error occurred: {error_str[:200]}"
 
 
+def _remove_empty_sections(summary_text):
+    """Remove sections that only contain 'None mentioned in the transcript.' (and the section header)."""
+    if not summary_text or "None mentioned" not in summary_text:
+        return summary_text
+    # Remove section header + "None mentioned in the transcript." (with optional blank lines)
+    patterns = [
+        r"\n*\s*✅\s*3\.\s*Action Items\s*\n+\s*None mentioned in the transcript\.?\s*\n*",
+        r"\n*\s*💡\s*4\.\s*Decisions Made\s*\n+\s*None mentioned in the transcript\.?\s*\n*",
+        r"\n*\s*⏭️\s*5\.\s*Next Steps\s*\n+\s*None mentioned in the transcript\.?\s*\n*",
+    ]
+    result = summary_text
+    for pattern in patterns:
+        result = re.sub(pattern, "\n\n", result, flags=re.IGNORECASE)
+    result = re.sub(r"\n{3,}", "\n\n", result)
+    return result.strip()
+
+
 def generate_summary(transcript):
     """
     Generate structured meeting notes from transcript
@@ -85,16 +102,12 @@ def generate_summary(transcript):
 
     3.2 Second action item
 
-    (If none, write: "None mentioned in the transcript.")
-
 
     💡 4. Decisions Made
 
     4.1 First decision
 
     4.2 Second decision
-
-    (If none, write: "None mentioned in the transcript.")
 
 
     ⏭️ 5. Next Steps
@@ -103,11 +116,10 @@ def generate_summary(transcript):
 
     5.2 Second next step
 
-    (If none, write: "None mentioned in the transcript.")
-
 
     IMPORTANT:
-    - Use the emojis shown above before each main section number
+    - If there are NO action items, NO decisions, or NO next steps, OMIT that entire section. Do not write "None mentioned" or any placeholder for empty sections.
+    - Use the emojis shown above before each main section number. Only include sections 3, 4, 5 when they have at least one item.
     - DO NOT use ## markdown headers, just use the emoji + plain numbering
     - Add blank lines between sections
     - Each sentence and item must be on its own separate line
@@ -130,6 +142,7 @@ def generate_summary(transcript):
         )
 
         summary = response.choices[0].message.content
+        summary = _remove_empty_sections(summary)
         return summary
     except Exception as e:
         friendly_error = format_api_error(e)
